@@ -188,7 +188,7 @@ export default function Memorization() {
       {/* FINISHED */}
       {finished && (
         <div className="text-center space-y-4">
-          <p className="text-xl">Time's up!</p>
+          <p className="text-xl">Time&apos;s up!</p>
           <p className="text-lg">
             Final Score:{' '}
             <span className="font-semibold">{score.correct}</span>/
@@ -217,13 +217,4 @@ export default function Memorization() {
       )}
     </div>
   )
-}
-
-// simple Fisher–Yates shuffle
-function shuffle<T>(arr: T[]): T[] {
-  for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1))
-    ;[arr[i], arr[j]] = [arr[j], arr[i]]
-  }
-  return arr
 }

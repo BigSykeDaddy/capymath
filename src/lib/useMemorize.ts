@@ -1,4 +1,6 @@
 // src/lib/useMemorize.ts
+'use client'
+
 import { useEffect, useState, useRef } from 'react'
 
 export type Problem = { table: number; multiplier: number }
@@ -10,32 +12,30 @@ export function useMemorize(
 ) {
   // current problem & answer text
   const [problem, setProblem] = useState<Problem | null>(null)
-  const [answer, setAnswer] = useState<string>('')
+  const [answer, setAnswer]   = useState<string>('')
 
   // score & timing
   const [correctCount, setCorrectCount] = useState(0)
-  const [totalCount, setTotalCount]   = useState(0)
-  const [timeLeft, setTimeLeft]       = useState(durationSec)
-  const [finished, setFinished]       = useState(false)
+  const [totalCount, setTotalCount]     = useState(0)
+  const [timeLeft, setTimeLeft]         = useState(durationSec)
+  const [finished, setFinished]         = useState(false)
 
-  // map of "table-multiplier" -> how many times missed
-  const [wrongMap, setWrongMap]       = useState<Map<string,number>>(new Map())
+  // map "table-multiplier" → how many times missed
+  const [wrongMap, setWrongMap]         = useState<Map<string, number>>(new Map())
 
   // persisted high-scores keyed by "min-max"
-  const [highscores, setHighscores]   = useState<Record<string,number>>({})
+  const [highscores, setHighscores]     = useState<Record<string, number>>({})
 
-  // ref to the interval so we can clear on unmount/restart
+  // interval ref so we can clear on unmount/restart
   const intervalRef = useRef<number | null>(null)
 
-  // load high-scores once
+  // load highscores once
   useEffect(() => {
-    const stored = JSON.parse(
-      localStorage.getItem('memHighscores') || '{}'
-    ) as Record<string, number>
+    const stored = JSON.parse(localStorage.getItem('memHighscores') || '{}') 
     setHighscores(stored)
   }, [])
 
-  // sampling function: returns a random Problem, weighting missed ones heavier
+  // pick a random problem, weighting missed ones heavier
   function pickProblem(): Problem {
     const pool: Problem[] = []
     for (let t = minTable; t <= maxTable; t++) {
@@ -48,7 +48,7 @@ export function useMemorize(
       const key = `${p.table}-${p.multiplier}`
       return (wrongMap.get(key) || 0) + 1
     })
-    // pick by roulette-wheel
+    // roulette‐wheel selection
     const totalW = weights.reduce((a, b) => a + b, 0)
     let r = Math.random() * totalW
     for (let i = 0; i < pool.length; i++) {
@@ -60,7 +60,6 @@ export function useMemorize(
 
   // start or restart the session
   const start = () => {
-    // reset state
     setCorrectCount(0)
     setTotalCount(0)
     setWrongMap(new Map())
@@ -68,20 +67,16 @@ export function useMemorize(
     setAnswer('')
     setTimeLeft(durationSec)
 
-    // clear any existing timer
     if (intervalRef.current !== null) {
-      window.clearInterval(intervalRef.current)
+      clearInterval(intervalRef.current)
     }
-    // pick first problem
     setProblem(pickProblem())
 
-    // kick off countdown
     intervalRef.current = window.setInterval(() => {
       setTimeLeft(t => {
         if (t <= 1) {
-          // time's up
           if (intervalRef.current !== null) {
-            window.clearInterval(intervalRef.current)
+            clearInterval(intervalRef.current)
           }
           setFinished(true)
           return 0
@@ -95,7 +90,7 @@ export function useMemorize(
   useEffect(() => {
     return () => {
       if (intervalRef.current !== null) {
-        window.clearInterval(intervalRef.current)
+        clearInterval(intervalRef.current)
       }
     }
   }, [])
@@ -108,12 +103,10 @@ export function useMemorize(
     const correctAns = problem.table * problem.multiplier
     const isRight    = guess === correctAns
 
-    // update score
     setTotalCount(c => c + 1)
     if (isRight) {
       setCorrectCount(c => c + 1)
     } else {
-      // bump wrong count for this problem
       const key = `${problem.table}-${problem.multiplier}`
       setWrongMap(m => {
         const copy = new Map(m)
@@ -122,25 +115,24 @@ export function useMemorize(
       })
     }
 
-    // next problem immediately
     setAnswer('')
     setProblem(pickProblem())
   }
 
-  // retry simply restarts
+  // simple retry
   const retry = () => start()
 
   // record high-score when finished
   useEffect(() => {
     if (!finished) return
-    const key   = `${minTable}-${maxTable}`
-    const prev  = highscores[key] || 0
+    const key  = `${minTable}-${maxTable}`
+    const prev = highscores[key] || 0
     if (correctCount > prev) {
       const upd = { ...highscores, [key]: correctCount }
       setHighscores(upd)
       localStorage.setItem('memHighscores', JSON.stringify(upd))
     }
-  }, [finished])
+  }, [finished, correctCount, highscores, minTable, maxTable])
 
   return {
     start,
@@ -152,12 +144,7 @@ export function useMemorize(
     timeLeft,
     finished,
     highscores,
-    wrongMap,   // ← added this
+    wrongMap,
     retry,
   }
-}
-
-// helper to shuffle
-function shuffle<T>(arr: T[]): T[] {
-  return arr.sort(() => Math.random() - 0.5)
 }

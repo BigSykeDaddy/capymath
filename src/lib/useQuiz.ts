@@ -1,4 +1,5 @@
 // src/lib/useQuiz.ts
+/* eslint-disable react-hooks/exhaustive-deps */
 import { useEffect, useState } from 'react'
 
 export type Problem = { a: number; b: number }
@@ -13,9 +14,9 @@ export type QuizState = {
 export function useQuiz(rangeMin = 1, rangeMax = 12): QuizState {
   // score tracking
   const [correct, setCorrect] = useState(0)
-  const [total, setTotal]   = useState(0)
-  const [bestPct, setBest]  = useState(() => {
-    const stored = parseInt(localStorage.getItem('bestPct') || '0')
+  const [total, setTotal]     = useState(0)
+  const [bestPct, setBest]    = useState(() => {
+    const stored = parseInt(localStorage.getItem('bestPct') || '0', 10)
     return isNaN(stored) ? 0 : stored
   })
 
@@ -29,7 +30,6 @@ export function useQuiz(rangeMin = 1, rangeMax = 12): QuizState {
     const b = rand(rangeMin, rangeMax)
     const correctAns = a * b
 
-    // 1 correct + 3 random decoys
     const opts = new Set<number>([correctAns])
     while (opts.size < 4) {
       opts.add(rand(rangeMin, rangeMax) * rand(rangeMin, rangeMax))
@@ -39,8 +39,10 @@ export function useQuiz(rangeMin = 1, rangeMax = 12): QuizState {
     setChoices(shuffle(Array.from(opts)))
   }
 
-  // call next() on mount
-  useEffect(() => { next() }, [])
+  // initialize once
+  useEffect(() => {
+    next()
+  }, [])
 
   // submit handler
   const submit = (answer: number) => {
@@ -50,8 +52,7 @@ export function useQuiz(rangeMin = 1, rangeMax = 12): QuizState {
     setTotal(newTotal)
     setCorrect(newCorrect)
 
-    // update best%
-    const pct = Math.round((newCorrect / newTotal) * 100)
+    const pct = newTotal ? Math.round((newCorrect / newTotal) * 100) : 0
     if (pct > bestPct) {
       setBest(pct)
       localStorage.setItem('bestPct', String(pct))
@@ -79,6 +80,7 @@ export function useQuiz(rangeMin = 1, rangeMax = 12): QuizState {
 function rand(min: number, max: number) {
   return Math.floor(Math.random() * (max - min + 1)) + min
 }
+
 function shuffle<T>(arr: T[]) {
   return arr.sort(() => Math.random() - 0.5)
 }
