@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Learn Multiplication</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: sans-serif;
+      background: #f8f8f8;
+    }
+    header {
+      text-align: center;
+      padding: 12px;
+    }
+    header button {
+      margin: 0 4px;
+      padding: 8px 16px;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+
+    /* —— Grid Styles (Times Table & Skip-Counting) —— */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 8px;
+      width: 90vw;
+      max-width: 600px;
+      margin: 0 auto 24px;
+    }
+    .cell {
+      background: #fff;
+      border: 2px solid #ddd;
+      border-radius: 6px;
+      padding: 20px 0;
+      text-align: center;
+      font-size: 1.1rem;
+      user-select: none;
+      transition: background 0.2s, transform 0.1s;
+    }
+    .cell:active {
+      background: #e0f7fa;
+      transform: scale(0.98);
+    }
+    .result {
+      color: hotpink;
+      font-weight: bold;
+    }
+
+    /* —— Quiz Styles —— */
+    #quiz {
+      max-width: 400px;
+      margin: 16px auto;
+      text-align: center;
+    }
+    #choices button {
+      margin: 6px;
+      padding: 8px 16px;
+      font-size: 1.1rem;
+      cursor: pointer;
+    }
+
+    /* —— Memorization Practice Styles —— */
+    #memorize {
+      max-width: 400px;
+      margin: 16px auto;
+      text-align: center;
+    }
+    #memControls {
+      margin-bottom: 16px;
+    }
+    #memQuiz {
+      margin-bottom: 16px;
+    }
+    #memQuiz input {
+      width: 80px;
+      padding: 4px;
+      font-size: 1rem;
+      text-align: center;
+    }
+    #memHighscoreList {
+      list-style: none;
+      padding: 0;
+      text-align: left;
+      margin-top: 16px;
+    }
+    #memHighscoreList li {
+      margin: 4px 0;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <button id="btnGrid">Times Table</button>
+    <button id="btnSkip">Skip-Counting</button>
+    <button id="btnQuiz">Quiz Mode</button>
+    <button id="btnMemorize">Memorization Practice</button>
+  </header>
+
+  <!-- TIMES TABLE GRID -->
+  <div class="grid" id="grid"></div>
+
+  <!-- SKIP-COUNTING GRID -->
+  <div class="grid" id="skipGrid" style="display:none;"></div>
+
+  <!-- QUIZ MODE -->
+  <div id="quiz" style="display:none;">
+    <h2 id="question"></h2>
+    <div id="choices"></div>
+    <p>
+      Score: <span id="score">0</span>/<span id="total">0</span> |
+      Best: <span id="best">0%</span>
+    </p>
+  </div>
+
+  <!-- MEMORIZATION PRACTICE -->
+  <div id="memorize" style="display:none;">
+    <div id="memControls">
+      <label for="memSelect">Choose table:</label>
+      <select id="memSelect">
+        <option value="1">1</option>
+        <option value="2">2</option>
+        <option value="3">3</option>
+        <option value="4">4</option>
+        <option value="5">5</option>
+        <option value="6">6</option>
+        <option value="7">7</option>
+        <option value="8">8</option>
+        <option value="9">9</option>
+        <option value="10">10</option>
+        <option value="11">11</option>
+        <option value="12">12</option>
+      </select>
+      <button id="memStart">Start</button>
+    </div>
+    <div id="memQuiz" style="display:none;">
+      <h2 id="memQuestion"></h2>
+      <input type="number" id="memAnswer" />
+      <button id="memSubmit">Submit</button>
+      <p>Score: <span id="memScore">0</span>/12</p>
+    </div>
+    <div id="memResult" style="display:none;">
+      <h3>You got <span id="finalScore"></span>/12</h3>
+      <button id="memRetry">Try Again</button>
+      <button id="memNext">Next Table</button>
+    </div>
+    <div id="memHighscores">
+      <h3>High Scores</h3>
+      <ul id="memHighscoreList"></ul>
+    </div>
+  </div>
+
+  <script>
+    // Element refs
+    const grid       = document.getElementById('grid');
+    const skipG      = document.getElementById('skipGrid');
+    const quiz       = document.getElementById('quiz');
+    const memorize   = document.getElementById('memorize');
+
+    const qText      = document.getElementById('question');
+    const choices    = document.getElementById('choices');
+    const scoreEl    = document.getElementById('score');
+    const totalEl    = document.getElementById('total');
+    const bestEl     = document.getElementById('best');
+
+    const btnGrid       = document.getElementById('btnGrid');
+    const btnSkip       = document.getElementById('btnSkip');
+    const btnQuiz       = document.getElementById('btnQuiz');
+    const btnMemorize   = document.getElementById('btnMemorize');
+
+    // Memorization refs
+    const memControls   = document.getElementById('memControls');
+    const memSelect     = document.getElementById('memSelect');
+    const memStart      = document.getElementById('memStart');
+    const memQuizDiv    = document.getElementById('memQuiz');
+    const memQuestion   = document.getElementById('memQuestion');
+    const memAnswer     = document.getElementById('memAnswer');
+    const memSubmit     = document.getElementById('memSubmit');
+    const memScoreEl    = document.getElementById('memScore');
+    const memResultDiv  = document.getElementById('memResult');
+    const finalScoreEl  = document.getElementById('finalScore');
+    const memRetry      = document.getElementById('memRetry');
+    const memNext       = document.getElementById('memNext');
+    const hsList        = document.getElementById('memHighscoreList');
+
+    // 1) Build 12×12 Times Table
+    function buildGrid() {
+      grid.innerHTML = '';
+      for (let i = 1; i <= 12; i++) {
+        for (let j = 1; j <= 12; j++) {
+          const c = document.createElement('div');
+          c.className = 'cell';
+          c.dataset.text = `${i}×${j}`;
+          c.dataset.answer = i * j;
+          c.textContent = c.dataset.text;
+          c.addEventListener('pointerdown', () => c.textContent = c.dataset.answer);
+          c.addEventListener('pointerup',   () => c.textContent = c.dataset.text);
+          c.addEventListener('pointerleave',() => c.textContent = c.dataset.text);
+          grid.appendChild(c);
+        }
+      }
+    }
+
+    // 2) Build Skip-Counting with hot-pink results
+    function buildSkip() {
+      skipG.innerHTML = '';
+      for (let i = 1; i <= 12; i++) {
+        for (let j = 1; j <= 12; j++) {
+          const c = document.createElement('div');
+          c.className = 'cell';
+          c.innerHTML = `${i}×${j} = <span class="result">${i*j}</span>`;
+          skipG.appendChild(c);
+        }
+      }
+    }
+
+    // 3) Quiz Mode (1–12)
+    let correct=0, total=0, bestPct= parseInt(localStorage.getItem('bestPct'))||0;
+    function saveBest(){
+      const pct= total? Math.round(correct/total*100):0;
+      if(pct>bestPct){
+        bestPct=pct;
+        localStorage.setItem('bestPct',bestPct);
+      }
+    }
+    function updateScore(){
+      scoreEl.textContent=correct;
+      totalEl.textContent=total;
+      bestEl.textContent=bestPct+'%';
+    }
+    function nextQuestion(){
+      const a=1+Math.floor(Math.random()*12);
+      const b=1+Math.floor(Math.random()*12);
+      const ans=a*b;
+      qText.textContent=`What is ${a}×${b}?`;
+      const opts=new Set([ans]);
+      while(opts.size<4){
+        opts.add((1+Math.floor(Math.random()*12))*(1+Math.floor(Math.random()*12)));
+      }
+      choices.innerHTML='';
+      Array.from(opts).sort(()=>Math.random()-0.5).forEach(val=>{
+        const btn=document.createElement('button');
+        btn.textContent=val;
+        btn.onclick=()=>{
+          total++;
+          if(val===ans) correct++;
+          saveBest();
+          updateScore();
+          nextQuestion();
+        };
+        choices.appendChild(btn);
+      });
+    }
+
+    // 4) Memorization Practice
+    let memNumber, memQuestions, memIdx, memCorrect, memHighscores;
+    function shuffle(arr){ return arr.sort(()=>Math.random()-0.5); }
+
+    function loadHighscores(){
+      memHighscores= JSON.parse(localStorage.getItem('memHighscores')||'{}');
+    }
+    function renderHighscores(){
+      hsList.innerHTML='';
+      for(let n=1;n<=12;n++){
+        const best = memHighscores[n]||0;
+        const li = document.createElement('li');
+        li.textContent = `${n}×: ${best}/12`;
+        hsList.appendChild(li);
+      }
+    }
+
+    function startMem(){
+      memNumber=+memSelect.value;
+      memQuestions=shuffle([1,2,3,4,5,6,7,8,9,10,11,12]);
+      memIdx=0; memCorrect=0;
+      memControls.style.display='none';
+      memQuizDiv.style.display='';
+      memResultDiv.style.display='none';
+      memScoreEl.textContent=0;
+      showMemQuestion();
+    }
+
+    function showMemQuestion(){
+      const j = memQuestions[memIdx];
+      memQuestion.textContent = `What is ${memNumber}×${j}?`;
+      memAnswer.value='';
+      memAnswer.focus();
+    }
+
+    function submitMem(){
+      const j = memQuestions[memIdx];
+      if(+memAnswer.value === memNumber*j) memCorrect++;
+      memIdx++;
+      memScoreEl.textContent = memCorrect;
+      if(memIdx<12){
+        showMemQuestion();
+      } else {
+        finishMem();
+      }
+    }
+
+    function finishMem(){
+      finalScoreEl.textContent = memCorrect;
+      memQuizDiv.style.display='none';
+      memResultDiv.style.display='';
+      const prev= memHighscores[memNumber]||0;
+      if(memCorrect>prev){
+        memHighscores[memNumber]=memCorrect;
+        localStorage.setItem('memHighscores', JSON.stringify(memHighscores));
+      }
+      renderHighscores();
+    }
+
+    function retryMem(){ startMem(); }
+    function nextMem(){
+      memSelect.value = memNumber<12? memNumber+1 : 1;
+      startMem();
+    }
+
+    // Mode switch helper
+    function showMode(m){
+      grid.style.display      = m==='grid'? ''    : 'none';
+      skipG.style.display     = m==='skip'? ''    : 'none';
+      quiz.style.display      = m==='quiz'? ''    : 'none';
+      memorize.style.display  = m==='memorize'? '' : 'none';
+    }
+
+    // Button handlers
+    btnGrid.onclick     = ()=> { showMode('grid'); };
+    btnSkip.onclick     = ()=> { showMode('skip'); buildSkip(); };
+    btnQuiz.onclick     = ()=> { showMode('quiz'); updateScore(); nextQuestion(); };
+    btnMemorize.onclick = ()=> { showMode('memorize'); loadHighscores(); renderHighscores(); };
+
+    // Memorization handlers
+    memStart.onclick  = startMem;
+    memSubmit.onclick = submitMem;
+    // let Enter trigger submit
+    memAnswer.addEventListener('keydown', e => {
+        if (e.key === 'Enter') {
+        e.preventDefault();
+        submitMem();
+        }
+    });
+    memRetry.onclick  = retryMem;
+    memNext.onclick   = nextMem;
+
+    // Init on load
+    buildGrid();
+  </script>
+</body>
+</html>
