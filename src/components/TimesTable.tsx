@@ -3,31 +3,51 @@
 
 import React, { useState } from 'react'
 
-type Problem = { a: number; b: number }
 type CellProps = { a: number; b: number }
 
 function Cell({ a, b }: CellProps) {
   const label = `${a}×${b}`
-  const [show, setShow] = useState(label)
   const answer = a * b
+  const [show, setShow] = useState(label)
 
   const reveal = () => {
     setShow(String(answer))
     setTimeout(() => setShow(label), 800)
   }
 
+  // if show is not the original label, we're in "revealed" state
+  const isRevealed = show !== label
+
   return (
     <div
       onClick={reveal}
-      className="w-full aspect-square bg-white border border-gray-300 rounded-lg flex items-center justify-center select-none text-[var(--color-fg)] font-medium text-sm sm:text-base transition hover:bg-[var(--color-primary)]/30 active:scale-95"
+      className={`
+        w-full aspect-square
+        flex items-center justify-center
+        select-none rounded-lg border transition
+        hover:bg-[var(--color-primary)]/30 active:scale-95
+        ${isRevealed 
+          ? 'bg-green-50 border-green-200' 
+          : 'bg-white border-gray-300'}
+      `}
     >
-      {show}
+      <span
+        className={`
+          text-sm sm:text-base
+          ${isRevealed 
+            ? 'text-green-600 font-bold' 
+            : 'text-[var(--color-fg)] font-medium'}
+        `}
+      >
+        {show}
+      </span>
     </div>
   )
 }
 
 export default function TimesTable() {
-  const cells: Problem[] = Array.from({ length: 12 }, (_, i) => i + 1)
+  // generate all 12×12 problems
+  const cells = Array.from({ length: 12 }, (_, i) => i + 1)
     .flatMap(a => Array.from({ length: 12 }, (_, j) => ({ a, b: j + 1 })))
 
   return (

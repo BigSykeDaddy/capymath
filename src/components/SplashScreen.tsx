@@ -80,7 +80,7 @@ export default function SplashScreen({ onSelect }: { onSelect: (path: string) =>
       {step === 'menu' && (
         <div className="mt-10 space-y-3 animate-fade-in z-10">
           {[
-            { label: 'Multiplication Table', path: '/' },
+            { label: 'Multiplication Table', path: '/timestable' },
             { label: 'Skip-Counting',      path: '/skip' },
             { label: 'Quiz Mode',          path: '/quiz' },
             { label: 'Memorization',       path: '/memorize' },
