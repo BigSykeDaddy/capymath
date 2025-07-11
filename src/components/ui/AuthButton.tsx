@@ -1,27 +1,40 @@
-// components/AuthButton.tsx
+// src/components/ui/AuthButton.tsx
 "use client";
 
 import { useSession, signIn, signOut } from "next-auth/react";
-import { Button } from "@/components/ui/button"; // if you have a button component
 
 export function AuthButton() {
   const { data: session, status } = useSession();
 
   if (status === "loading") {
-    return <Button disabled>Loading…</Button>;
+    return (
+      <button
+        disabled
+        className="px-4 py-2 rounded-lg bg-[#FF7F66] bg-opacity-50 text-white cursor-not-allowed"
+      >
+        Loading…
+      </button>
+    );
   }
 
   if (!session) {
     return (
-      <Button onClick={() => signIn("credentials")}>
+      <button
+        // ← CALL signIn() WITH NO ARG, NOT signIn("credentials")
+        onClick={() => signIn()}
+        className="px-4 py-2 rounded-lg bg-[#FF7F66] hover:bg-[#F65A46] text-white transition"
+      >
         Sign In
-      </Button>
+      </button>
     );
   }
 
   return (
-    <Button onClick={() => signOut()}>
+    <button
+      onClick={() => signOut()}
+      className="px-4 py-2 rounded-lg bg-[#FF7F66] hover:bg-[#F65A46] text-white transition"
+    >
       Sign Out ({session.user.email})
-    </Button>
+    </button>
   );
 }

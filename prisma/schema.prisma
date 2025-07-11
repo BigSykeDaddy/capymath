@@ -12,7 +12,7 @@ model User {
   email         String    @unique
   name          String?
   role          Role      @default(child)
-  parentId      String?   
+  parentId      String?
   parent        User?     @relation("ParentChildren", fields: [parentId], references: [id])
   children      User[]    @relation("ParentChildren")
   attempts      Attempt[]
@@ -37,21 +37,19 @@ enum Role {
   child
 }
 
-/// NextAuth.js adapter models:
-
 model Account {
   id                 String   @id @default(cuid())
   userId             String
   type               String
   provider           String
   providerAccountId  String
-  refresh_token      String?  
-  access_token       String?  
-  expires_at         Int?     
-  token_type         String?  
-  scope              String?  
-  id_token           String?  
-  session_state      String?  
+  refresh_token      String?
+  access_token       String?
+  expires_at         Int?
+  token_type         String?
+  scope              String?
+  id_token           String?
+  session_state      String?
 
   user               User     @relation("UserAccounts", fields: [userId], references: [id])
 

@@ -9,6 +9,7 @@ CREATE TABLE "User" (
     "role" "Role" NOT NULL DEFAULT 'child',
     "parentId" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "passwordHash" TEXT,
 
     CONSTRAINT "User_pkey" PRIMARY KEY ("id")
 );
