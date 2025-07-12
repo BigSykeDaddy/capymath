@@ -1,4 +1,3 @@
-// src/components/Memorization.tsx
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
@@ -7,9 +6,12 @@ import type { Question } from './types'
 import { allCombos } from '@/utils/generateQuestions'
 import CapybaraAnimation from './CapybaraAnimation'
 import { logAttempt } from '@/lib/practice'
-import { getUserId } from '@/utils/auth' // You can implement this to return a hardcoded or cookie-based userId
 
 type Bubble = { id: number; x: number; y: number; size: number }
+
+interface MemorizationProps {
+  userId: string
+}
 
 function shuffle<T>(arr: T[]): T[] {
   const a = [...arr]
@@ -20,7 +22,7 @@ function shuffle<T>(arr: T[]): T[] {
   return a
 }
 
-export default function Memorization({ userId }: { userId: string }) {  
+export default function Memorization({ userId }: MemorizationProps) {
   const [mode, setMode] = useState<'range' | 'upto'>('range')
   const [minTable, setMinTable] = useState(1)
   const [maxTable, setMaxTable] = useState(12)
@@ -112,9 +114,7 @@ export default function Memorization({ userId }: { userId: string }) {
     const guess = Number(answer)
     const correctAnswer = current.table * current.multiplier
     const isCorrect = guess === correctAnswer
-
     const problem = `${current.table}×${current.multiplier}`
-    const userId = getUserId()
 
     try {
       await logAttempt({
@@ -184,6 +184,7 @@ export default function Memorization({ userId }: { userId: string }) {
 
       <h2 className="text-4xl font-bold my-6">Memorization Mode</h2>
 
+      {/* Mode selection UI */}
       {!started && (
         <div className="flex flex-col items-center space-y-4">
           <div className="flex items-center space-x-6">

@@ -21,7 +21,7 @@ export default async function RootLayout({
   return (
     <html lang="en">
       <body className="min-h-screen relative">
-        <Providers session={session}>
+        <Providers session={session ?? undefined}>
           <Nav />
           <SplashWrapper>{children}</SplashWrapper>
         </Providers>

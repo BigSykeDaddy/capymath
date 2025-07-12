@@ -19,9 +19,11 @@ export const authOptions: NextAuthOptions = {
       },
       async authorize(credentials) {
         if (!credentials) return null;
+
         const user = await prisma.user.findUnique({
           where: { email: credentials.email },
         });
+
         if (
           user &&
           user.passwordHash &&
@@ -29,13 +31,16 @@ export const authOptions: NextAuthOptions = {
         ) {
           return user;
         }
+
         return null;
       },
     }),
   ],
+  pages: {
+    signIn: "/signin",
+  },
   callbacks: {
     async jwt({ token, user }) {
-      // when the user signs in, persist their role & parentId on the JWT
       if (user) {
         token.role = user.role;
         token.parentId = user.parentId ?? undefined;
@@ -43,7 +48,6 @@ export const authOptions: NextAuthOptions = {
       return token;
     },
     async session({ session, token }) {
-      // expose id, role, parentId on the session.user
       session.user.id = token.sub!;
       session.user.role = token.role as "parent" | "child";
       session.user.parentId = token.parentId as string | undefined;
