@@ -8,28 +8,54 @@ datasource db {
 }
 
 model User {
-  id            String    @id @default(uuid())
-  email         String    @unique
-  name          String?
-  role          Role      @default(child)
-  parentId      String?
-  parent        User?     @relation("ParentChildren", fields: [parentId], references: [id])
-  children      User[]    @relation("ParentChildren")
-  attempts      Attempt[]
-  accounts      Account[] @relation("UserAccounts")
-  sessions      Session[] @relation("UserSessions")
-  createdAt     DateTime  @default(now())
-  passwordHash  String?
+  id                     String             @id @default(uuid())
+  email                  String             @unique
+  name                   String?
+  role                   Role               @default(child)
+  parentId               String?
+  parent                 User?              @relation("ParentChildren", fields: [parentId], references: [id])
+  children               User[]             @relation("ParentChildren")
+  attempts               Attempt[]
+  practiceSessions       PracticeSession[]
+  accounts               Account[]          @relation("UserAccounts")
+  sessions               Session[]          @relation("UserSessions")
+  createdAt              DateTime           @default(now())
+  passwordHash           String?
+  emailVerified          Boolean            @default(false)
+  verificationToken      String?            // ✅ used in email verification
+  verificationTokenExpires DateTime?        // ✅ when token becomes invalid
 }
 
 model Attempt {
-  id          Int       @id @default(autoincrement())
-  user        User      @relation(fields: [userId], references: [id])
+  id          Int      @id @default(autoincrement())
+  user        User     @relation(fields: [userId], references: [id])
   userId      String
   problem     String
   correct     Boolean
   timeMs      Int
-  attemptedAt DateTime  @default(now())
+  mode        String
+  attemptedAt DateTime @default(now())
+}
+
+model PracticeSession {
+  id           String    @id @default(uuid())
+  user         User      @relation(fields: [userId], references: [id])
+  userId       String
+  mode         String
+  startedAt    DateTime  @default(now())
+  completedAt  DateTime?
+  problems     Problem[]
+}
+
+model Problem {
+  id          String           @id @default(uuid())
+  session     PracticeSession  @relation(fields: [sessionId], references: [id])
+  sessionId   String
+  question    String
+  userAnswer  String
+  correct     Boolean
+  round       Int
+  timeMs      Int
 }
 
 enum Role {

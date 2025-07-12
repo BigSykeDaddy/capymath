@@ -20,7 +20,6 @@ export function AuthButton() {
   if (!session) {
     return (
       <button
-        // ← CALL signIn() WITH NO ARG, NOT signIn("credentials")
         onClick={() => signIn()}
         className="px-4 py-2 rounded-lg bg-[#FF7F66] hover:bg-[#F65A46] text-white transition"
       >
@@ -34,7 +33,7 @@ export function AuthButton() {
       onClick={() => signOut()}
       className="px-4 py-2 rounded-lg bg-[#FF7F66] hover:bg-[#F65A46] text-white transition"
     >
-      Sign Out ({session.user.email})
+      Sign Out
     </button>
   );
 }

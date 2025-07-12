@@ -1,12 +1,14 @@
 // src/components/Nav.tsx
-"use client";
+'use client'
 
-import Link from "next/link";
-import Image from "next/image";
-import { AuthButton } from "@/components/ui/AuthButton";
+import Link from 'next/link'
+import Image from 'next/image'
+import { useSession } from 'next-auth/react'
+import { AuthButton } from '@/components/ui/AuthButton'
 
 export default function Nav() {
-  // (we’re no longer hiding on "/")
+  const { data: session } = useSession()
+
   return (
     <header className="fixed top-4 left-4 z-50 flex items-center space-x-4">
       {/* logo */}
@@ -20,8 +22,18 @@ export default function Nav() {
         />
       </Link>
 
-      {/* sign in / sign out */}
+      {/* CapyParent link for logged-in parents */}
+      {session?.user?.role === 'parent' && (
+      <Link
+        href="/admin"
+        className="px-4 py-2 rounded-lg bg-[#FF7F66] hover:bg-[#F65A46] text-white transition"
+      >
+        CapyParent
+      </Link>
+      )}
+
+      {/* sign in / sign out button */}
       <AuthButton />
     </header>
-  );
+  )
 }

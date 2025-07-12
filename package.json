@@ -13,12 +13,14 @@
     "@prisma/client": "^6.11.1",
     "bcrypt": "^6.0.0",
     "bcryptjs": "^3.0.2",
+    "date-fns": "^4.1.0",
     "framer-motion": "^12.23.3",
     "next": "15.3.5",
     "next-auth": "^4.24.11",
     "prisma": "^6.11.1",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "resend": "^4.6.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",

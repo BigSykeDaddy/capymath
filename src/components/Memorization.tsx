@@ -6,10 +6,11 @@ import Image from 'next/image'
 import type { Question } from './types'
 import { allCombos } from '@/utils/generateQuestions'
 import CapybaraAnimation from './CapybaraAnimation'
+import { logAttempt } from '@/lib/practice'
+import { getUserId } from '@/utils/auth' // You can implement this to return a hardcoded or cookie-based userId
 
 type Bubble = { id: number; x: number; y: number; size: number }
 
-// Fisher–Yates shuffle
 function shuffle<T>(arr: T[]): T[] {
   const a = [...arr]
   for (let i = a.length - 1; i > 0; i--) {
@@ -19,34 +20,28 @@ function shuffle<T>(arr: T[]): T[] {
   return a
 }
 
-export default function Memorization() {
-  // ─── 1) Selection mode & table picks ────────────────────
+export default function Memorization({ userId }: { userId: string }) {  
   const [mode, setMode] = useState<'range' | 'upto'>('range')
   const [minTable, setMinTable] = useState(1)
   const [maxTable, setMaxTable] = useState(12)
   const [uptoTable, setUptoTable] = useState(1)
   const tableOptions = Array.from({ length: 12 }, (_, i) => i + 1)
 
-  // ─── 2) Question pool & current question ───────────────
   const [pool, setPool] = useState<Question[]>([])
   const wrongSet = useRef<Set<string>>(new Set())
   const [current, setCurrent] = useState<Question | null>(null)
   const [answer, setAnswer] = useState('')
 
-  // ─── 3) Progress tracking ───────────────────────────────
   const [totalCount, setTotalCount] = useState(0)
   const [correctCount, setCorrectCount] = useState(0)
 
-  // ─── 4) UI state ───────────────────────────────────────
   const [started, setStarted] = useState(false)
   const [finished, setFinished] = useState(false)
 
-  // ─── 5) Bubble confetti ────────────────────────────────
   const [bubbles, setBubbles] = useState<Bubble[]>([])
   const nextBubbleId = useRef(1)
   const inputRef = useRef<HTMLInputElement>(null)
 
-  /** Advance to next question or retry wrong ones */
   function nextQuestion(fromPool?: Question[]) {
     const src = fromPool ?? pool
     if (src.length === 0) {
@@ -72,17 +67,13 @@ export default function Memorization() {
     setAnswer('')
   }
 
-  /** Start (or restart) a session */
   function start() {
     wrongSet.current.clear()
 
-    // build our list of {table, multiplier}
     let combos: Question[]
     if (mode === 'range') {
-      // tables & multipliers both from minTable…maxTable
       combos = shuffle(allCombos(minTable, maxTable))
     } else {
-      // “Up to” mode: tables 1…uptoTable, multipliers 1…12
       const list: Question[] = []
       for (let t = 1; t <= uptoTable; t++) {
         for (let m = 1; m <= 12; m++) {
@@ -100,7 +91,6 @@ export default function Memorization() {
     nextQuestion(combos)
   }
 
-  /** Spawn confetti bubbles on correct */
   function maybeSpawnBubbles(x: number, y: number) {
     const count = 3 + Math.floor(Math.random() * 3)
     const newB: Bubble[] = []
@@ -117,12 +107,28 @@ export default function Memorization() {
     )
   }
 
-  /** Handle answer submission */
-  function handleSubmit(evt?: React.MouseEvent) {
+  async function handleSubmit(evt?: React.MouseEvent) {
     if (!current) return
     const guess = Number(answer)
-    const correct = current.table * current.multiplier
-    if (guess === correct) {
+    const correctAnswer = current.table * current.multiplier
+    const isCorrect = guess === correctAnswer
+
+    const problem = `${current.table}×${current.multiplier}`
+    const userId = getUserId()
+
+    try {
+      await logAttempt({
+        userId,
+        problem,
+        correct: isCorrect,
+        timeMs: 0,
+        mode: 'memorization',
+      })
+    } catch (err) {
+      console.error('Logging failed:', err)
+    }
+
+    if (isCorrect) {
       setCorrectCount(c => c + 1)
       if (evt) maybeSpawnBubbles(evt.clientX, evt.clientY)
       else if (inputRef.current) {
@@ -130,15 +136,16 @@ export default function Memorization() {
         maybeSpawnBubbles(r.left + r.width / 2, r.top + r.height / 2)
       }
     } else {
-      wrongSet.current.add(`${current.table}×${current.multiplier}`)
+      wrongSet.current.add(problem)
     }
+
     nextQuestion()
   }
+
   function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
     if (e.key === 'Enter') handleSubmit()
   }
 
-  /** Auto‐focus & select whenever a new question appears */
   useEffect(() => {
     if (started && !finished && current && inputRef.current) {
       inputRef.current.focus()
@@ -148,13 +155,11 @@ export default function Memorization() {
 
   return (
     <div className="relative min-h-screen flex flex-col items-center justify-start p-8 bg-[var(--color-bg)] text-[var(--color-fg)]">
-      {/* Progress bar & capy */}
       <CapybaraAnimation
         progress={totalCount > 0 ? correctCount / totalCount : 0}
         finished={finished}
       />
 
-      {/* Confetti bubbles */}
       {bubbles.map(b => (
         <div
           key={b.id}
@@ -179,10 +184,8 @@ export default function Memorization() {
 
       <h2 className="text-4xl font-bold my-6">Memorization Mode</h2>
 
-      {/* Before “Begin” */}
       {!started && (
         <div className="flex flex-col items-center space-y-4">
-          {/* mode switch */}
           <div className="flex items-center space-x-6">
             <label className="flex items-center space-x-1">
               <input
@@ -202,7 +205,6 @@ export default function Memorization() {
             </label>
           </div>
 
-          {/* range vs up‐to controls */}
           {mode === 'range' ? (
             <div className="flex items-center space-x-2">
               <label>From:</label>
@@ -265,7 +267,6 @@ export default function Memorization() {
         </div>
       )}
 
-      {/* Quiz UI */}
       {started && !finished && current && (
         <>
           <p className="mb-4 text-2xl">
@@ -291,7 +292,6 @@ export default function Memorization() {
         </>
       )}
 
-      {/* Finished */}
       {started && finished && (
         <div className="text-center space-y-4">
           <p className="text-2xl">All done! 🎉</p>

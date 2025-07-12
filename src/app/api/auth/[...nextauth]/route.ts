@@ -24,17 +24,24 @@ export const authOptions: NextAuthOptions = {
         const user = await prisma.user.findUnique({
           where: { email: credentials.email },
         })
-        if (
-          user &&
-          user.passwordHash &&
-          (await bcrypt.compare(credentials.password, user.passwordHash))
-        ) {
-          return user
+
+        if (!user || !user.passwordHash) return null
+
+        const passwordMatches = await bcrypt.compare(credentials.password, user.passwordHash)
+        if (!passwordMatches) return null
+
+        // ✅ Require email verification
+        if (!user.emailVerified) {
+          throw new Error('Please verify your email before signing in.')
         }
-        return null
+
+        return user
       },
     }),
   ],
+  pages: {
+    signIn: "/signin",
+  },
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
@@ -44,8 +51,6 @@ export const authOptions: NextAuthOptions = {
       return token
     },
     async session({ session, token }) {
-      // next-auth’s built-in Session.user has only name/email by default;
-      // here we’re tacking on id/role/parentId
       session.user.id = token.sub!
       session.user.role = token.role as "parent" | "child"
       session.user.parentId = token.parentId as string | undefined

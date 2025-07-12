@@ -26,9 +26,9 @@ export default function SplashScreen({ onSelect }: { onSelect: (path: string) =>
 
   useEffect(() => {
     const t: ReturnType<typeof setTimeout>[] = []
-    t.push(setTimeout(() => setStep('capy'), 1000))
-    t.push(setTimeout(() => setStep('bubble'), 1800))
-    t.push(setTimeout(() => setStep('menu'), 2600))
+    t.push(setTimeout(() => setStep('capy'), 500))
+    t.push(setTimeout(() => setStep('bubble'), 1000))
+    t.push(setTimeout(() => setStep('menu'), 1600))
     return () => t.forEach(clearTimeout)
   }, [])
 
@@ -80,7 +80,7 @@ export default function SplashScreen({ onSelect }: { onSelect: (path: string) =>
       {step === 'menu' && (
         <div className="mt-10 space-y-3 animate-fade-in z-10">
           {[
-            { label: 'Multiplication Table', path: '/timestable' },
+            { label: 'Multiplication Table', path: '/timestable' }, // ANIMATION TIMING
             { label: 'Skip-Counting',      path: '/skip' },
             { label: 'Quiz Mode',          path: '/quiz' },
             { label: 'Memorization',       path: '/memorize' },

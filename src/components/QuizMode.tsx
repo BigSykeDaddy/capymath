@@ -1,24 +1,26 @@
-// src/components/QuizMode.tsx
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
 import Image from 'next/image'
+import { logAttempt } from '@/lib/practice'
+
+interface QuizModeProps {
+  userId: string
+}
 
 type Question = { a: number; b: number; answer: number }
 type Bubble   = { id: number; x: number; y: number; size: number }
 
-export default function QuizMode() {
+export default function QuizMode({ userId }: QuizModeProps) {
   const [question, setQuestion] = useState<Question>({ a: 0, b: 0, answer: 0 })
-  const [options,  setOptions]  = useState<number[]>([])
+  const [options, setOptions] = useState<number[]>([])
   const [correctCount, setCorrect] = useState(0)
-  const [totalCount,   setTotal]   = useState(0)
-  const [bestPct,      setBestPct] = useState(0)
+  const [totalCount, setTotal] = useState(0)
+  const [bestPct, setBestPct] = useState(0)
 
-  // bubble state
-  const [bubbles,     setBubbles] = useState<Bubble[]>([])
+  const [bubbles, setBubbles] = useState<Bubble[]>([])
   const nextBubbleId = useRef(1)
 
-  // load best% and first question
   useEffect(() => {
     const stored = parseInt(localStorage.getItem('bestPct') || '0', 10)
     setBestPct(stored)
@@ -49,10 +51,10 @@ export default function QuizMode() {
     }
   }
 
-  function handleChoice(choice: number, e: React.MouseEvent<HTMLButtonElement>) {
-    const isRight     = choice === question.answer
-    const newTotal    = totalCount + 1
-    const newCorrect  = isRight ? correctCount + 1 : correctCount
+  async function handleChoice(choice: number, e: React.MouseEvent<HTMLButtonElement>) {
+    const isRight = choice === question.answer
+    const newTotal = totalCount + 1
+    const newCorrect = isRight ? correctCount + 1 : correctCount
 
     setTotal(newTotal)
     if (isRight) {
@@ -61,27 +63,39 @@ export default function QuizMode() {
     }
 
     maybeSaveBest(newCorrect, newTotal)
+
+    // 🧠 Log attempt to DB if user is logged in
+    if (userId) {
+      try {
+        await logAttempt({
+          userId,
+          problem: `${question.a}x${question.b}`,
+          correct: isRight,
+          timeMs: 0, // We’ll wire up timing later
+          mode: 'quiz',
+        })
+      } catch (err) {
+        console.error('Failed to log quiz attempt:', err)
+      }
+    }
+
     nextQuestion()
   }
 
   function maybeSpawnBubbles(x: number, y: number) {
-    // spawn between 3 and 6 bubbles
     const count = 3 + Math.floor(Math.random() * 4)
     const newBubs: Bubble[] = []
 
     for (let i = 0; i < count; i++) {
-      const id   = nextBubbleId.current++
-      const size = 24 + Math.random() * 16       // 24px–40px
-      // slight random offset so they scatter a bit
-      const ox   = (Math.random() - 0.5) * 40
-      const oy   = (Math.random() - 0.5) * 40
-
+      const id = nextBubbleId.current++
+      const size = 24 + Math.random() * 16
+      const ox = (Math.random() - 0.5) * 40
+      const oy = (Math.random() - 0.5) * 40
       newBubs.push({ id, x: x + ox, y: y + oy, size })
     }
 
     setBubbles(b => [...b, ...newBubs])
 
-    // remove them after 0.6s (animation duration)
     newBubs.forEach(bub => {
       setTimeout(() => {
         setBubbles(b => b.filter(x => x.id !== bub.id))
@@ -91,15 +105,14 @@ export default function QuizMode() {
 
   return (
     <div className="relative min-h-screen flex flex-col items-center justify-center bg-[var(--color-bg)] text-[var(--color-fg)] p-8">
-      {/* render all bubbles */}
       {bubbles.map(b => (
         <div
           key={b.id}
           style={{
             position: 'absolute',
             left: b.x - b.size / 2,
-            top:  b.y - b.size / 2,
-            width:  b.size,
+            top: b.y - b.size / 2,
+            width: b.size,
             height: b.size,
             pointerEvents: 'none',
           }}
@@ -139,7 +152,6 @@ export default function QuizMode() {
   )
 }
 
-// simple Fisher–Yates shuffle
 function shuffle<T>(arr: T[]): T[] {
   for (let i = arr.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1))

@@ -21,9 +21,34 @@ CREATE TABLE "Attempt" (
     "problem" TEXT NOT NULL,
     "correct" BOOLEAN NOT NULL,
     "timeMs" INTEGER NOT NULL,
+    "mode" TEXT NOT NULL,
     "attemptedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "Attempt_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "PracticeSession" (
+    "id" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "mode" TEXT NOT NULL,
+    "startedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "completedAt" TIMESTAMP(3),
+
+    CONSTRAINT "PracticeSession_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "Problem" (
+    "id" TEXT NOT NULL,
+    "sessionId" TEXT NOT NULL,
+    "question" TEXT NOT NULL,
+    "userAnswer" TEXT NOT NULL,
+    "correct" BOOLEAN NOT NULL,
+    "round" INTEGER NOT NULL,
+    "timeMs" INTEGER NOT NULL,
+
+    CONSTRAINT "Problem_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -81,6 +106,12 @@ ALTER TABLE "User" ADD CONSTRAINT "User_parentId_fkey" FOREIGN KEY ("parentId") 
 
 -- AddForeignKey
 ALTER TABLE "Attempt" ADD CONSTRAINT "Attempt_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "PracticeSession" ADD CONSTRAINT "PracticeSession_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Problem" ADD CONSTRAINT "Problem_sessionId_fkey" FOREIGN KEY ("sessionId") REFERENCES "PracticeSession"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Account" ADD CONSTRAINT "Account_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
