@@ -1,4 +1,3 @@
-// src/app/signin/page.tsx
 "use client";
 
 import { getCsrfToken } from "next-auth/react";
@@ -8,6 +7,7 @@ import Link from "next/link";
 
 export default function SignIn() {
   const [csrfToken, setCsrfToken] = useState<string | undefined>(undefined);
+  const [showPassword, setShowPassword] = useState(false);
   const params = useSearchParams();
 
   useEffect(() => {
@@ -34,13 +34,24 @@ export default function SignIn() {
             className="w-full px-4 py-2 border rounded"
             required
           />
-          <input
-            name="password"
-            type="password"
-            placeholder="Password"
-            className="w-full px-4 py-2 border rounded"
-            required
-          />
+
+          <div className="relative">
+            <input
+              name="password"
+              type={showPassword ? "text" : "password"}
+              placeholder="Password"
+              className="w-full px-4 py-2 border rounded"
+              required
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((prev) => !prev)}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-sm text-blue-600"
+            >
+              {showPassword ? "Hide" : "Show"}
+            </button>
+          </div>
+
           <button
             type="submit"
             className="w-full bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-semibold py-2 px-4 rounded transition"

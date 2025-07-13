@@ -31,6 +31,7 @@ export default function Memorization({ userId }: MemorizationProps) {
 
   const [pool, setPool] = useState<Question[]>([])
   const wrongSet = useRef<Set<string>>(new Set())
+  const allProblemsRef = useRef<any[]>([]) // 🧠 Track every problem in full
   const [current, setCurrent] = useState<Question | null>(null)
   const [answer, setAnswer] = useState('')
 
@@ -44,10 +45,33 @@ export default function Memorization({ userId }: MemorizationProps) {
   const nextBubbleId = useRef(1)
   const inputRef = useRef<HTMLInputElement>(null)
 
+  async function saveSessionToDB() {
+    if (allProblemsRef.current.length === 0) return
+
+    try {
+      const res = await fetch('/api/sessions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          mode: 'memorization',
+          problems: allProblemsRef.current,
+        }),
+      })
+      if (!res.ok) {
+        console.error('❌ Failed to save session:', await res.text())
+      } else {
+        console.log('✅ Session saved.')
+      }
+    } catch (err) {
+      console.error('❌ Error posting session:', err)
+    }
+  }
+
   function nextQuestion(fromPool?: Question[]) {
     const src = fromPool ?? pool
     if (src.length === 0) {
       if (wrongSet.current.size === 0) {
+        saveSessionToDB()
         setFinished(true)
         setCurrent(null)
       } else {
@@ -63,6 +87,7 @@ export default function Memorization({ userId }: MemorizationProps) {
       }
       return
     }
+
     const [q, ...rest] = src
     setCurrent(q)
     setPool(rest)
@@ -71,6 +96,7 @@ export default function Memorization({ userId }: MemorizationProps) {
 
   function start() {
     wrongSet.current.clear()
+    allProblemsRef.current = []
 
     let combos: Question[]
     if (mode === 'range') {
@@ -128,6 +154,15 @@ export default function Memorization({ userId }: MemorizationProps) {
       console.error('Logging failed:', err)
     }
 
+    // 🧠 Track full problem
+    allProblemsRef.current.push({
+      question: problem,
+      userAnswer: answer,
+      correct: isCorrect,
+      timeMs: 0,
+      round: 1,
+    })
+
     if (isCorrect) {
       setCorrectCount(c => c + 1)
       if (evt) maybeSpawnBubbles(evt.clientX, evt.clientY)
@@ -184,7 +219,6 @@ export default function Memorization({ userId }: MemorizationProps) {
 
       <h2 className="text-4xl font-bold my-6">Memorization Mode</h2>
 
-      {/* Mode selection UI */}
       {!started && (
         <div className="flex flex-col items-center space-y-4">
           <div className="flex items-center space-x-6">
@@ -307,6 +341,7 @@ export default function Memorization({ userId }: MemorizationProps) {
             <button
               onClick={() => {
                 wrongSet.current.clear()
+                allProblemsRef.current = []
                 setStarted(false)
                 setFinished(false)
                 setPool([])

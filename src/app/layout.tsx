@@ -23,8 +23,10 @@ export default async function RootLayout({
       <body className="min-h-screen relative">
         <Providers session={session ?? undefined}>
           <Nav />
+          <div className="h-20" /> {/* Spacer for fixed nav */}
           <SplashWrapper>{children}</SplashWrapper>
         </Providers>
+
       </body>
     </html>
   );
