@@ -7,7 +7,7 @@ export async function sendVerificationEmail(to: string, token: string) {
   const verifyUrl = `https://capymath.com/verify?token=${token}`
 
   await resend.emails.send({
-    from: 'CapyMath <signup@capymath.com>',
+    from: process.env.EMAIL_FROM_ADDRESS!,
     to,
     subject: 'Verify your email for CapyMath',
     html: `

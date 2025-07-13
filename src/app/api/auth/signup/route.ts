@@ -2,7 +2,7 @@
 import { NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
-import { sendVerificationEmail } from '@/lib/email'
+// import { sendVerificationEmail } from '@/lib/email'  // ⛔️ Disabled temporarily
 import { randomUUID } from 'crypto'
 
 export async function POST(req: Request) {
@@ -30,11 +30,11 @@ export async function POST(req: Request) {
         role: 'child',
         verificationToken,
         verificationTokenExpires: tokenExpires,
-        emailVerified: false,
+        emailVerified: true, // ✅ Pretend the user verified their email
       },
     })
 
-    await sendVerificationEmail(email, verificationToken)
+    // await sendVerificationEmail(email, verificationToken) // ⛔️ Disabled
 
     return NextResponse.json({ success: true, userId: user.id })
   } catch (err) {
