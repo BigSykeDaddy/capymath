@@ -31,7 +31,15 @@ export default function Memorization({ userId }: MemorizationProps) {
 
   const [pool, setPool] = useState<Question[]>([])
   const wrongSet = useRef<Set<string>>(new Set())
-  const allProblemsRef = useRef<any[]>([]) // 🧠 Track every problem in full
+  const allProblemsRef = useRef<
+    {
+      question: string
+      userAnswer: string
+      correct: boolean
+      timeMs: number
+      round: number
+    }[]
+  >([]) // 🧠 Track every problem in full
   const [current, setCurrent] = useState<Question | null>(null)
   const [answer, setAnswer] = useState('')
 
