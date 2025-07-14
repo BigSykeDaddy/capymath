@@ -26,7 +26,7 @@ export default function Nav() {
       {session?.user?.role === 'parent' && (
       <Link
         href="/admin"
-        className="px-4 py-2 rounded-lg bg-[#FF7F66] hover:bg-[#F65A46] text-white transition"
+        className="px-4 py-2 rounded-full bg-[#FF7F66] hover:bg-[#F65A46] text-white transition"
       >
         CapyParent
       </Link>
