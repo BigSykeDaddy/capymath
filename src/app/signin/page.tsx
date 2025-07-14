@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import { getCsrfToken } from "next-auth/react";
-import { useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
-import Link from "next/link";
+import { getCsrfToken } from 'next-auth/react';
+import { useSearchParams } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
 
 export default function SignIn() {
   const [csrfToken, setCsrfToken] = useState<string | undefined>(undefined);
@@ -14,7 +14,7 @@ export default function SignIn() {
     getCsrfToken().then((token) => setCsrfToken(token || undefined));
   }, []);
 
-  const error = params.get("error");
+  const error = params.get('error');
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100">
@@ -27,6 +27,8 @@ export default function SignIn() {
         )}
         <form method="post" action="/api/auth/callback/credentials" className="space-y-4">
           <input name="csrfToken" type="hidden" defaultValue={csrfToken} />
+          <input name="callbackUrl" type="hidden" value="/menu" /> {/* 👈 added this */}
+
           <input
             name="email"
             type="email"
@@ -38,7 +40,7 @@ export default function SignIn() {
           <div className="relative">
             <input
               name="password"
-              type={showPassword ? "text" : "password"}
+              type={showPassword ? 'text' : 'password'}
               placeholder="Password"
               className="w-full px-4 py-2 border rounded"
               required
@@ -48,7 +50,7 @@ export default function SignIn() {
               onClick={() => setShowPassword((prev) => !prev)}
               className="absolute right-2 top-1/2 -translate-y-1/2 text-sm text-blue-600"
             >
-              {showPassword ? "Hide" : "Show"}
+              {showPassword ? 'Hide' : 'Show'}
             </button>
           </div>
 
@@ -59,10 +61,17 @@ export default function SignIn() {
             Sign In
           </button>
         </form>
+
         <p className="mt-4 text-center text-sm">
-          Don&apos;t have an account?{" "}
+          Don&apos;t have an account?{' '}
           <Link href="/signup" className="text-blue-600 hover:underline">
             Sign up here
+          </Link>
+        </p>
+        <p className="mt-2 text-center text-sm">
+          Didn&apos;t receive a verification email?{' '}
+          <Link href="/resend" className="text-blue-600 hover:underline">
+            Click here to resend it
           </Link>
         </p>
       </div>
