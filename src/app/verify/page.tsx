@@ -29,7 +29,7 @@ export default function VerifyPage() {
         } else {
           throw new Error();
         }
-      } catch (err) {
+      } catch {
         setStatus('error');
       }
     };
