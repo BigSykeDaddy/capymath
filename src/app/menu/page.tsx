@@ -27,9 +27,9 @@ export default function MenuPage() {
             <div className="flex flex-col gap-4 items-center">
                 {[
                     { label: 'Multiplication Table', path: '/timestable' },
-                    { label: 'Skip-Counting', path: '/skip-counting' },
-                    { label: 'Quiz Mode', path: '/quiz-mode' },
-                    { label: 'Memorization', path: '/memorization' },
+                    { label: 'Skip-Counting', path: '/skip' },
+                    { label: 'Quiz Mode', path: '/quiz' },
+                    { label: 'Memorization', path: '/memorize' },
                 ].map(({ label, path }) => (
                     <Link key={path} href={path}>
                         <button className="px-6 py-2 rounded-lg bg-[var(--color-accent)] hover:bg-[#F65A46] text-white transition shadow">
