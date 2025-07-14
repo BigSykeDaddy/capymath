@@ -1,339 +1,153 @@
-'use client'
+'use client';
 
-import { useState, useRef, useEffect } from 'react'
-import Image from 'next/image'
-import type { Question } from './types'
-import { allCombos } from '@/utils/generateQuestions'
-import CapybaraAnimation from './CapybaraAnimation'
-import { logAttempt } from '@/lib/practice'
-import BackToMenu from './BackToMenu'
+import { useEffect, useState } from 'react';
+import Image from 'next/image';
+import Link from 'next/link';
+import { useSession } from 'next-auth/react';
+import { AuthButton } from '@/components/ui/AuthButton';
+import { motion, AnimatePresence } from 'framer-motion';
 
-type Bubble = { id: number; x: number; y: number; size: number }
-
-interface MemorizationProps {
-  userId: string
+function AnimatedTitle({ text }: { text: string }) {
+  return (
+    <h1 className="text-6xl font-bold text-[var(--color-primary)] mb-10 text-center">
+      {text.split('').map((char, i) => (
+        <span
+          key={i}
+          className="inline-block opacity-0 animate-fade-in"
+          style={{ animationDelay: `${i * 120}ms` }}
+        >
+          {char}
+        </span>
+      ))}
+    </h1>
+  );
 }
 
-function shuffle<T>(arr: T[]): T[] {
-  const a = [...arr]
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1))
-      ;[a[i], a[j]] = [a[j], a[i]]
-  }
-  return a
-}
-
-export default function Memorization({ userId }: MemorizationProps) {
-  const [mode, setMode] = useState<'range' | 'upto'>('range')
-  const [minTable, setMinTable] = useState(1)
-  const [maxTable, setMaxTable] = useState(12)
-  const [uptoTable, setUptoTable] = useState(1)
-  const tableOptions = Array.from({ length: 12 }, (_, i) => i + 1)
-
-  const [pool, setPool] = useState<Question[]>([])
-  const wrongSet = useRef<Set<string>>(new Set())
-  const allProblemsRef = useRef<
-    { question: string; userAnswer: string; correct: boolean; timeMs: number; round: number }[]
-  >([])
-
-  const [current, setCurrent] = useState<Question | null>(null)
-  const [answer, setAnswer] = useState('')
-
-  const [totalCount, setTotalCount] = useState(0)
-  const [correctCount, setCorrectCount] = useState(0)
-
-  const [started, setStarted] = useState(false)
-  const [finished, setFinished] = useState(false)
-
-  const [bubbles, setBubbles] = useState<Bubble[]>([])
-  const nextBubbleId = useRef(1)
-  const inputRef = useRef<HTMLInputElement>(null)
-
-  async function saveSessionToDB() {
-    if (!allProblemsRef.current.length) return
-    try {
-      const res = await fetch('/api/sessions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          mode: 'memorization',
-          problems: allProblemsRef.current,
-        }),
-      })
-      if (!res.ok) console.error('❌ Failed to save session:', await res.text())
-      else console.log('✅ Session saved.')
-    } catch (err) {
-      console.error('❌ Error posting session:', err)
-    }
-  }
-
-  function nextQuestion(fromPool?: Question[]) {
-    const src = fromPool ?? pool
-    if (!src.length) {
-      if (!wrongSet.current.size) {
-        saveSessionToDB()
-        setFinished(true)
-        setCurrent(null)
-      } else {
-        const retryQs = shuffle(
-          Array.from(wrongSet.current).map(key => {
-            const [t, m] = key.split('×').map(Number)
-            return { table: t, multiplier: m }
-          })
-        )
-        wrongSet.current.clear()
-        setPool(retryQs)
-        return nextQuestion(retryQs)
-      }
-      return
-    }
-    const [q, ...rest] = src
-    setCurrent(q)
-    setPool(rest)
-    setAnswer('')
-  }
-
-  function start() {
-    wrongSet.current.clear()
-    allProblemsRef.current = []
-
-    let combos: Question[] =
-      mode === 'range'
-        ? shuffle(allCombos(minTable, maxTable))
-        : shuffle(
-          Array.from({ length: uptoTable }, (_, i) => i + 1).flatMap((t) =>
-            Array.from({ length: 12 }, (_, m) => ({ table: t, multiplier: m + 1 }))
-          )
-        )
-
-    setPool(combos)
-    setTotalCount(combos.length)
-    setCorrectCount(0)
-    setFinished(false)
-    setStarted(true)
-    nextQuestion(combos)
-  }
-
-  function maybeSpawnBubbles(x: number, y: number) {
-    const count = 3 + Math.floor(Math.random() * 3)
-    const newB: Bubble[] = []
-    for (let i = 0; i < count; i++) {
-      const id = nextBubbleId.current++
-      const size = 24 + Math.random() * 16
-      const ox = (Math.random() - 0.5) * 40
-      const oy = (Math.random() - 0.5) * 40
-      newB.push({ id, x: x + ox, y: y + oy, size })
-    }
-    setBubbles((bs) => [...bs, ...newB])
-    newB.forEach((b) =>
-      setTimeout(() => setBubbles((bs) => bs.filter((x) => x.id !== b.id)), 600)
-    )
-  }
-
-  async function handleSubmit(evt?: React.MouseEvent) {
-    if (!current) return
-    const guess = Number(answer)
-    const correctAnswer = current.table * current.multiplier
-    const isCorrect = guess === correctAnswer
-    const problem = `${current.table}×${current.multiplier}`
-
-    try {
-      await logAttempt({ userId, problem, correct: isCorrect, timeMs: 0, mode: 'memorization' })
-    } catch (err) {
-      console.error('Logging failed:', err)
-    }
-
-    allProblemsRef.current.push({
-      question: problem,
-      userAnswer: answer,
-      correct: isCorrect,
-      timeMs: 0,
-      round: 1,
-    })
-
-    if (isCorrect) {
-      setCorrectCount((c) => c + 1)
-      if (evt) maybeSpawnBubbles(evt.clientX, evt.clientY)
-      else if (inputRef.current) {
-        const r = inputRef.current.getBoundingClientRect()
-        maybeSpawnBubbles(r.left + r.width / 2, r.top + r.height / 2)
-      }
-    } else {
-      wrongSet.current.add(problem)
-    }
-
-    nextQuestion()
-  }
-
-  function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
-    if (e.key === 'Enter') handleSubmit()
-  }
+export default function SplashScreen({ onSelect }: { onSelect: (path: string) => void }) {
+  const [step, setStep] = useState<'title' | 'capy' | 'bubble' | 'menu'>('title');
+  const { data: session } = useSession();
 
   useEffect(() => {
-    if (started && !finished && current && inputRef.current) {
-      inputRef.current.focus()
-      inputRef.current.select()
-    }
-  }, [current, started, finished])
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    timers.push(setTimeout(() => setStep('capy'), 500));
+    timers.push(setTimeout(() => setStep('bubble'), 800));
+    timers.push(setTimeout(() => setStep('menu'), 801));
+    return () => timers.forEach(clearTimeout);
+  }, []);
 
   return (
-    <div className="w-full max-w-full relative min-h-screen flex flex-col items-center justify-start overflow-x-hidden px-4 sm:px-8 pt-8 bg-[var(--color-bg)] text-[var(--color-fg)]">
-      <CapybaraAnimation
-        progress={totalCount > 0 ? correctCount / totalCount : 0}
-        finished={finished}
-      />
+    <div className="fixed inset-0 z-50 flex flex-col items-center justify-start pt-40 sm:pt-24 bg-[var(--color-bg)] px-4 overflow-x-hidden">
+      <style jsx>{`
+        .speech-bubble {
+          position: absolute;
+          background: white;
+          padding: 0.5rem 1rem;
+          border-radius: 9999px;
+          box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+          white-space: nowrap;
+          font-size: 0.875rem;
+          z-index: 20;
+          animation: fade-in 0.4s ease-in-out forwards;
+          top: 0;
+          left: 0;
+          transform: translate(-70%, -120%);
+        }
 
-      {bubbles.map((b) => (
-        <div
-          key={b.id}
-          style={{
-            position: 'absolute',
-            left: b.x - b.size / 2,
-            top: b.y - b.size / 2,
-            width: b.size,
-            height: b.size,
-            pointerEvents: 'none',
-          }}
-        >
+        .speech-bubble::after {
+          content: '';
+          position: absolute;
+          width: 1rem;
+          height: 1rem;
+          background: white;
+          transform: rotate(45deg);
+          bottom: -0.5rem;
+          left: 70%;
+        }
+
+        @media (min-width: 640px) {
+          .speech-bubble {
+            font-size: 1rem;
+            transform: translate(-250%, -110%);
+          }
+
+          .speech-bubble::after {
+            bottom: -0.6rem;
+            left: 82%;
+          }
+        }
+      `}</style>
+
+      {/* Top‐left nav (unchanged) */}
+      <header className="fixed top-4 left-4 z-50 flex items-center space-x-4">
+        <Link href="/menu" aria-label="Go to main menu">
           <Image
             src="/images/capy-face.png"
-            alt="✨"
-            width={b.size}
-            height={b.size}
-            className="animate-capy-pop"
+            alt="Capybara"
+            width={48}
+            height={48}
+            className="cursor-pointer"
           />
-        </div>
-      ))}
+        </Link>
+        <AuthButton />
+        {session?.user?.role === 'parent' && (
+          <Link href="/admin">
+            <button className="ml-2 px-4 py-1 rounded-full bg-[var(--color-accent)] text-white text-sm hover:bg-[#F65A46] transition shadow">
+              CapyParent
+            </button>
+          </Link>
+        )}
+      </header>
 
-      <h2 className="text-4xl font-bold my-6">Memorization Mode</h2>
+      {/* Title (matches menu) */}
+      <AnimatedTitle text="CapyMath" />
 
-      {!started && (
-        <div className="flex flex-col items-center space-y-4">
-          {/* start controls */}
-          <div className="flex items-center space-x-6">
-            <label className="flex items-center space-x-1">
-              <input type="radio" checked={mode === 'range'} onChange={() => setMode('range')} />
-              <span>Range</span>
-            </label>
-            <label className="flex items-center space-x-1">
-              <input type="radio" checked={mode === 'upto'} onChange={() => setMode('upto')} />
-              <span>Up to</span>
-            </label>
-          </div>
-          {mode === 'range' ? (
-            <div className="flex items-center space-x-2">
-              <label>From:</label>
-              <select
-                value={minTable}
-                onChange={(e) => {
-                  const v = Number(e.target.value)
-                  setMinTable(v)
-                  if (v > maxTable) setMaxTable(v)
-                }}
-                className="p-2 border rounded"
+      {/* Capy + Speech Bubble */}
+      {step !== 'title' && (
+        <div className="relative mb-10 w-1/2 max-w-[120px] sm:w-[180px] sm:max-w-none animate-scale-in">
+          <Image
+            src="/capy-loading.png"
+            alt="Capy Cartoon"
+            width={180}
+            height={150}
+            priority
+            className="w-full h-auto"
+          />
+
+          {/* bubble floats on top */}
+          <AnimatePresence>
+            {(step === 'bubble' || step === 'menu') && (
+              <motion.div
+                className="speech-bubble"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
               >
-                {tableOptions.map((n) => (
-                  <option key={n} value={n}>
-                    {n}
-                  </option>
-                ))}
-              </select>
-              <label>To:</label>
-              <select
-                value={maxTable}
-                onChange={(e) => setMaxTable(Number(e.target.value))}
-                className="p-2 border rounded"
-              >
-                {tableOptions.filter((n) => n >= minTable).map((n) => (
-                  <option key={n} value={n}>
-                    {n}
-                  </option>
-                ))}
-              </select>
-            </div>
-          ) : (
-            <div className="flex items-center space-x-2">
-              <label>Up to:</label>
-              <select
-                value={uptoTable}
-                onChange={(e) => setUptoTable(Number(e.target.value))}
-                className="p-2 border rounded"
-              >
-                {tableOptions.map((n) => (
-                  <option key={n} value={n}>
-                    {n}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-          <button
-            onClick={start}
-            className="px-6 py-3 bg-[var(--color-accent)] text-white rounded-lg hover:bg-[var(--color-accent)]/80"
-          >
-            {mode === 'range'
-              ? `Begin (${minTable}–${maxTable})`
-              : `Begin (1–${uptoTable})`}
-          </button>
+                Hi Arya! Let’s do some Math!
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       )}
 
-      {started && !finished && current && (
-        <>
-          <p className="mb-4 text-2xl">
-            {current.table} × {current.multiplier} = ?
-          </p>
-          <div className="flex items-center space-x-2 mb-6">
-            <input
-              ref={inputRef}
-              type="text"
-              inputMode="numeric"
-              className="w-24 p-2 border rounded text-center appearance-none"
-              value={answer}
-              onChange={(e) => setAnswer(e.target.value)}
-              onKeyDown={handleKeyDown}
-            />
+      {/* Buttons (same as menu) */}
+      {step === 'menu' && (
+        <div className="mt-7 flex flex-col gap-4 items-center w-full max-w-[600px] mx-auto animate-fade-in z-10">
+          {[
+            { label: 'Multiplication Table', path: '/timestable' },
+            { label: 'Skip-Counting', path: '/skip' },
+            { label: 'Quiz Mode', path: '/quiz' },
+            { label: 'Memorization', path: '/memorize' },
+          ].map(({ label, path }) => (
             <button
-              onClick={handleSubmit}
-              className="px-6 py-2 bg-[var(--color-accent)] text-white rounded-lg hover:bg-[var(--color-accent)]/80"
+              key={path}
+              onClick={() => onSelect(path)}
+              className="mx-auto max-w-xs px-9 py-4 text-base sm:px-9 sm:py-5 sm:text-lg rounded-full bg-[var(--color-accent)] hover:bg-[#F65A46] text-white font-semibold tracking-wide transition shadow-md"
             >
-              Submit
+              {label}
             </button>
-          </div>
-        </>
-      )}
-
-      {started && finished && (
-        <div className="text-center space-y-4">
-          <p className="text-2xl">All done! 🎉</p>
-          <p>You mastered every single problem in this range.</p>
-          <div className="flex justify-center space-x-4">
-            <button
-              onClick={start}
-              className="px-6 py-3 bg-[var(--color-accent)] text-white rounded-lg hover:bg-[var(--color-accent)]/80"
-            >
-              Try Again
-            </button>
-            <button
-              onClick={() => {
-                wrongSet.current.clear()
-                allProblemsRef.current = []
-                setStarted(false)
-                setFinished(false)
-                setPool([])
-                setTotalCount(0)
-                setCorrectCount(0)
-                setCurrent(null)
-              }}
-              className="px-6 py-3 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400/80"
-            >
-              New Range
-            </button>
-          </div>
+          ))}
         </div>
       )}
-
-      <BackToMenu />
     </div>
-  )
+  );
 }
