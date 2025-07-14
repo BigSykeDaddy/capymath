@@ -20,14 +20,14 @@ export default function SignIn() {
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100">
-      <div className="bg-white p-8 rounded shadow-md w-full max-w-md">
-        <h1 className="text-2xl font-bold mb-4 text-center">Sign In to CapyMath</h1>
+      <div className="bg-white p-8 rounded-xl shadow-md w-full max-w-md">
+        <h1 className="text-2xl font-bold mb-2 text-center">Sign In to CapyMath</h1>
         {error && (
           <p className="text-red-500 text-sm mb-2 text-center">
             {decodeURIComponent(error)}
           </p>
         )}
-        <form method="post" action="/api/auth/callback/credentials" className="space-y-4">
+        <form method="post" action="/api/auth/callback/credentials" className="space-y-7">
           <input name="csrfToken" type="hidden" defaultValue={csrfToken} />
           <input name="callbackUrl" type="hidden" value="/menu" /> {/* 👈 added this */}
 
@@ -35,7 +35,7 @@ export default function SignIn() {
             name="email"
             type="email"
             placeholder="Email"
-            className="w-full px-4 py-2 border rounded"
+            className="w-full px-4 py-4 border rounded-2xl"
             required
           />
 
@@ -44,13 +44,13 @@ export default function SignIn() {
               name="password"
               type={showPassword ? 'text' : 'password'}
               placeholder="Password"
-              className="w-full px-4 py-2 border rounded"
+              className="w-full px-4 py-4 border rounded-2xl"
               required
             />
             <button
               type="button"
               onClick={() => setShowPassword((prev) => !prev)}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-sm text-blue-600"
+              className="absolute right-5 top-1/2 -translate-y-1/2 text-sm text-blue-600"
             >
               {showPassword ? 'Hide' : 'Show'}
             </button>
@@ -58,13 +58,13 @@ export default function SignIn() {
 
           <button
             type="submit"
-            className="w-full bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-semibold py-2 px-4 rounded transition"
+            className={`w-full rounded-full bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-semibold py-3 px-4 transition`}
           >
             Sign In
           </button>
         </form>
 
-        <p className="mt-4 text-center text-sm">
+        <p className="mt-5 text-center text-sm">
           Don&apos;t have an account?{' '}
           <Link href="/signup" className="text-blue-600 hover:underline">
             Sign up here

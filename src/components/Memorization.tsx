@@ -6,6 +6,8 @@ import type { Question } from './types'
 import { allCombos } from '@/utils/generateQuestions'
 import CapybaraAnimation from './CapybaraAnimation'
 import { logAttempt } from '@/lib/practice'
+import BackToMenu from './BackToMenu'
+
 
 type Bubble = { id: number; x: number; y: number; size: number }
 
@@ -364,6 +366,7 @@ export default function Memorization({ userId }: MemorizationProps) {
           </div>
         </div>
       )}
+      <BackToMenu />
     </div>
   )
 }

@@ -10,7 +10,7 @@ export function AuthButton() {
     return (
       <button
         disabled
-        className="px-4 py-2 rounded-lg bg-[#FF7F66] bg-opacity-50 text-white cursor-not-allowed"
+        className="px-4 py-2 rounded-full bg-[#FF7F66] bg-opacity-50 text-white cursor-not-allowed"
       >
         Loading…
       </button>
@@ -21,7 +21,7 @@ export function AuthButton() {
     return (
       <button
         onClick={() => signIn()}
-        className="px-4 py-2 rounded-lg bg-[#FF7F66] hover:bg-[#F65A46] text-white transition"
+        className="px-4 py-2 rounded-full bg-[#FF7F66] hover:bg-[#F65A46] text-white transition"
       >
         Sign In
       </button>
@@ -31,7 +31,7 @@ export function AuthButton() {
   return (
     <button
       onClick={() => signOut()}
-      className="px-4 py-2 rounded-lg bg-[#FF7F66] hover:bg-[#F65A46] text-white transition"
+      className="px-4 py-2 rounded-full bg-[#FF7F66] hover:bg-[#F65A46] text-white transition"
     >
       Sign Out
     </button>

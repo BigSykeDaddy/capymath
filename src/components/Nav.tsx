@@ -12,7 +12,7 @@ export default function Nav() {
   return (
     <header className="fixed top-4 left-4 z-50 flex items-center space-x-4">
       {/* logo */}
-      <Link href="/" aria-label="Go to main menu">
+      <Link href="/menu" aria-label="Go to main menu">
         <Image
           src="/images/capy-face.png"
           alt="Capybara"

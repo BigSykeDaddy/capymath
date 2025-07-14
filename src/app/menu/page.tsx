@@ -5,21 +5,21 @@ import Image from 'next/image';
 
 export default function MenuPage() {
     return (
-        <main className="min-h-screen bg-[var(--color-bg)] flex flex-col items-center justify-center px-4">
+        <main className="min-h-screen bg-[var(--color-bg)] flex flex-col items-center justify-start pt-24 px-4">
 
             {/* Capy image */}
             <div className="mb-4">
                 <Image
                     src="/capy-loading.png"
                     alt="Capy Icon"
-                    width={150}
+                    width={180}
                     height={150}
                     priority
                 />
             </div>
 
             {/* Title */}
-            <h1 className="text-5xl font-bold text-[var(--color-primary)] mb-8 text-center">
+            <h1 className="text-6xl font-bold text-[var(--color-primary)] mb-10 text-center">
                 CapyMath
             </h1>
 
@@ -32,7 +32,7 @@ export default function MenuPage() {
                     { label: 'Memorization', path: '/memorize' },
                 ].map(({ label, path }) => (
                     <Link key={path} href={path}>
-                        <button className="px-6 py-2 rounded-lg bg-[var(--color-accent)] hover:bg-[#F65A46] text-white transition shadow">
+                        <button className="px-9 py-5 rounded-full bg-[var(--color-accent)] hover:bg-[#F65A46] text-white text-lg font-semibold tracking-wide transition shadow-md">
                             {label}
                         </button>
                     </Link>
