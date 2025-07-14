@@ -9,6 +9,7 @@ import SplashWrapper from "@/components/SplashWrapper";
 export const metadata = {
   title: "CapyMath",
   description: "Capybara-themed multiplication drills with adaptive quizzes",
+  viewport: "width=device-width, initial-scale=1",   // ← ensures mobile scales to viewport
 };
 
 export default async function RootLayout({
@@ -26,7 +27,6 @@ export default async function RootLayout({
           <div className="h-20" /> {/* Spacer for fixed nav */}
           <SplashWrapper>{children}</SplashWrapper>
         </Providers>
-
       </body>
     </html>
   );

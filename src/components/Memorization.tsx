@@ -8,7 +8,6 @@ import CapybaraAnimation from './CapybaraAnimation'
 import { logAttempt } from '@/lib/practice'
 import BackToMenu from './BackToMenu'
 
-
 type Bubble = { id: number; x: number; y: number; size: number }
 
 interface MemorizationProps {
@@ -19,7 +18,7 @@ function shuffle<T>(arr: T[]): T[] {
   const a = [...arr]
   for (let i = a.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1))
-    ;[a[i], a[j]] = [a[j], a[i]]
+      ;[a[i], a[j]] = [a[j], a[i]]
   }
   return a
 }
@@ -34,14 +33,9 @@ export default function Memorization({ userId }: MemorizationProps) {
   const [pool, setPool] = useState<Question[]>([])
   const wrongSet = useRef<Set<string>>(new Set())
   const allProblemsRef = useRef<
-    {
-      question: string
-      userAnswer: string
-      correct: boolean
-      timeMs: number
-      round: number
-    }[]
-  >([]) // 🧠 Track every problem in full
+    { question: string; userAnswer: string; correct: boolean; timeMs: number; round: number }[]
+  >([])
+
   const [current, setCurrent] = useState<Question | null>(null)
   const [answer, setAnswer] = useState('')
 
@@ -56,8 +50,7 @@ export default function Memorization({ userId }: MemorizationProps) {
   const inputRef = useRef<HTMLInputElement>(null)
 
   async function saveSessionToDB() {
-    if (allProblemsRef.current.length === 0) return
-
+    if (!allProblemsRef.current.length) return
     try {
       const res = await fetch('/api/sessions', {
         method: 'POST',
@@ -67,11 +60,8 @@ export default function Memorization({ userId }: MemorizationProps) {
           problems: allProblemsRef.current,
         }),
       })
-      if (!res.ok) {
-        console.error('❌ Failed to save session:', await res.text())
-      } else {
-        console.log('✅ Session saved.')
-      }
+      if (!res.ok) console.error('❌ Failed to save session:', await res.text())
+      else console.log('✅ Session saved.')
     } catch (err) {
       console.error('❌ Error posting session:', err)
     }
@@ -79,8 +69,8 @@ export default function Memorization({ userId }: MemorizationProps) {
 
   function nextQuestion(fromPool?: Question[]) {
     const src = fromPool ?? pool
-    if (src.length === 0) {
-      if (wrongSet.current.size === 0) {
+    if (!src.length) {
+      if (!wrongSet.current.size) {
         saveSessionToDB()
         setFinished(true)
         setCurrent(null)
@@ -97,7 +87,6 @@ export default function Memorization({ userId }: MemorizationProps) {
       }
       return
     }
-
     const [q, ...rest] = src
     setCurrent(q)
     setPool(rest)
@@ -108,18 +97,14 @@ export default function Memorization({ userId }: MemorizationProps) {
     wrongSet.current.clear()
     allProblemsRef.current = []
 
-    let combos: Question[]
-    if (mode === 'range') {
-      combos = shuffle(allCombos(minTable, maxTable))
-    } else {
-      const list: Question[] = []
-      for (let t = 1; t <= uptoTable; t++) {
-        for (let m = 1; m <= 12; m++) {
-          list.push({ table: t, multiplier: m })
-        }
-      }
-      combos = shuffle(list)
-    }
+    let combos: Question[] =
+      mode === 'range'
+        ? shuffle(allCombos(minTable, maxTable))
+        : shuffle(
+          Array.from({ length: uptoTable }, (_, i) => i + 1).flatMap((t) =>
+            Array.from({ length: 12 }, (_, m) => ({ table: t, multiplier: m + 1 }))
+          )
+        )
 
     setPool(combos)
     setTotalCount(combos.length)
@@ -139,9 +124,9 @@ export default function Memorization({ userId }: MemorizationProps) {
       const oy = (Math.random() - 0.5) * 40
       newB.push({ id, x: x + ox, y: y + oy, size })
     }
-    setBubbles(bs => [...bs, ...newB])
-    newB.forEach(b =>
-      setTimeout(() => setBubbles(bs => bs.filter(x => x.id !== b.id)), 600)
+    setBubbles((bs) => [...bs, ...newB])
+    newB.forEach((b) =>
+      setTimeout(() => setBubbles((bs) => bs.filter((x) => x.id !== b.id)), 600)
     )
   }
 
@@ -153,18 +138,11 @@ export default function Memorization({ userId }: MemorizationProps) {
     const problem = `${current.table}×${current.multiplier}`
 
     try {
-      await logAttempt({
-        userId,
-        problem,
-        correct: isCorrect,
-        timeMs: 0,
-        mode: 'memorization',
-      })
+      await logAttempt({ userId, problem, correct: isCorrect, timeMs: 0, mode: 'memorization' })
     } catch (err) {
       console.error('Logging failed:', err)
     }
 
-    // 🧠 Track full problem
     allProblemsRef.current.push({
       question: problem,
       userAnswer: answer,
@@ -174,7 +152,7 @@ export default function Memorization({ userId }: MemorizationProps) {
     })
 
     if (isCorrect) {
-      setCorrectCount(c => c + 1)
+      setCorrectCount((c) => c + 1)
       if (evt) maybeSpawnBubbles(evt.clientX, evt.clientY)
       else if (inputRef.current) {
         const r = inputRef.current.getBoundingClientRect()
@@ -199,13 +177,13 @@ export default function Memorization({ userId }: MemorizationProps) {
   }, [current, started, finished])
 
   return (
-    <div className="relative min-h-screen flex flex-col items-center justify-start p-8 bg-[var(--color-bg)] text-[var(--color-fg)]">
+    <div className="w-full max-w-full relative min-h-screen flex flex-col items-center justify-start overflow-x-hidden px-4 sm:px-8 pt-8 bg-[var(--color-bg)] text-[var(--color-fg)]">
       <CapybaraAnimation
         progress={totalCount > 0 ? correctCount / totalCount : 0}
         finished={finished}
       />
 
-      {bubbles.map(b => (
+      {bubbles.map((b) => (
         <div
           key={b.id}
           style={{
@@ -231,38 +209,30 @@ export default function Memorization({ userId }: MemorizationProps) {
 
       {!started && (
         <div className="flex flex-col items-center space-y-4">
+          {/* start controls */}
           <div className="flex items-center space-x-6">
             <label className="flex items-center space-x-1">
-              <input
-                type="radio"
-                checked={mode === 'range'}
-                onChange={() => setMode('range')}
-              />
+              <input type="radio" checked={mode === 'range'} onChange={() => setMode('range')} />
               <span>Range</span>
             </label>
             <label className="flex items-center space-x-1">
-              <input
-                type="radio"
-                checked={mode === 'upto'}
-                onChange={() => setMode('upto')}
-              />
+              <input type="radio" checked={mode === 'upto'} onChange={() => setMode('upto')} />
               <span>Up to</span>
             </label>
           </div>
-
           {mode === 'range' ? (
             <div className="flex items-center space-x-2">
               <label>From:</label>
               <select
                 value={minTable}
-                onChange={e => {
+                onChange={(e) => {
                   const v = Number(e.target.value)
                   setMinTable(v)
                   if (v > maxTable) setMaxTable(v)
                 }}
                 className="p-2 border rounded"
               >
-                {tableOptions.map(n => (
+                {tableOptions.map((n) => (
                   <option key={n} value={n}>
                     {n}
                   </option>
@@ -271,16 +241,14 @@ export default function Memorization({ userId }: MemorizationProps) {
               <label>To:</label>
               <select
                 value={maxTable}
-                onChange={e => setMaxTable(Number(e.target.value))}
+                onChange={(e) => setMaxTable(Number(e.target.value))}
                 className="p-2 border rounded"
               >
-                {tableOptions
-                  .filter(n => n >= minTable)
-                  .map(n => (
-                    <option key={n} value={n}>
-                      {n}
-                    </option>
-                  ))}
+                {tableOptions.filter((n) => n >= minTable).map((n) => (
+                  <option key={n} value={n}>
+                    {n}
+                  </option>
+                ))}
               </select>
             </div>
           ) : (
@@ -288,10 +256,10 @@ export default function Memorization({ userId }: MemorizationProps) {
               <label>Up to:</label>
               <select
                 value={uptoTable}
-                onChange={e => setUptoTable(Number(e.target.value))}
+                onChange={(e) => setUptoTable(Number(e.target.value))}
                 className="p-2 border rounded"
               >
-                {tableOptions.map(n => (
+                {tableOptions.map((n) => (
                   <option key={n} value={n}>
                     {n}
                   </option>
@@ -299,15 +267,13 @@ export default function Memorization({ userId }: MemorizationProps) {
               </select>
             </div>
           )}
-
           <button
             onClick={start}
             className="px-6 py-3 bg-[var(--color-accent)] text-white rounded-lg hover:bg-[var(--color-accent)]/80"
           >
-            Begin{' '}
             {mode === 'range'
-              ? `(${minTable}–${maxTable})`
-              : `(1–${uptoTable})`}
+              ? `Begin (${minTable}–${maxTable})`
+              : `Begin (1–${uptoTable})`}
           </button>
         </div>
       )}
@@ -324,11 +290,11 @@ export default function Memorization({ userId }: MemorizationProps) {
               inputMode="numeric"
               className="w-24 p-2 border rounded text-center appearance-none"
               value={answer}
-              onChange={e => setAnswer(e.target.value)}
+              onChange={(e) => setAnswer(e.target.value)}
               onKeyDown={handleKeyDown}
             />
             <button
-              onClick={e => handleSubmit(e)}
+              onClick={handleSubmit}
               className="px-6 py-2 bg-[var(--color-accent)] text-white rounded-lg hover:bg-[var(--color-accent)]/80"
             >
               Submit
@@ -366,6 +332,7 @@ export default function Memorization({ userId }: MemorizationProps) {
           </div>
         </div>
       )}
+
       <BackToMenu />
     </div>
   )
