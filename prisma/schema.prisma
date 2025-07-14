@@ -21,7 +21,7 @@ model User {
   sessions               Session[]          @relation("UserSessions")
   createdAt              DateTime           @default(now())
   passwordHash           String?
-  emailVerified          Boolean            @default(false)
+  emailVerified          DateTime?          // ✅ now accepts null or Date
   verificationToken      String?            // ✅ used in email verification
   verificationTokenExpires DateTime?        // ✅ when token becomes invalid
 }
