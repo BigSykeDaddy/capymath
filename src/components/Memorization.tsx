@@ -1,19 +1,22 @@
 // src/components/Memorization.tsx
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import Image from 'next/image'
 import { logAttempt } from '@/lib/practice'
 import { allCombos } from '@/utils/generateQuestions'
 import type { Question } from './types'
 import BackToMenu from './BackToMenu'
 import CapybaraAnimation from './CapybaraAnimation'
+import FlashcardCarousel from './FlashcardCarousel'
 
 interface MemorizationProps {
   userId: string
 }
 
 type Bubble = { id: number; x: number; y: number; size: number }
+
+type FlashcardItem = { a: number; b: number; front: string; back: string }
 
 function shuffle<T>(arr: T[]): T[] {
   const a = [...arr]
@@ -25,12 +28,20 @@ function shuffle<T>(arr: T[]): T[] {
 }
 
 export default function Memorization({ userId }: MemorizationProps) {
+  // quiz settings
   const [mode, setMode] = useState<'range' | 'upto'>('range')
   const [minTable, setMinTable] = useState(1)
   const [maxTable, setMaxTable] = useState(12)
   const [uptoTable, setUptoTable] = useState(1)
+
+  // flashcard toggle
+  const [useFlashcards, setUseFlashcards] = useState(false)
+  const [showFlashcards, setShowFlashcards] = useState(false)
+  const [flashcards, setFlashcards] = useState<FlashcardItem[]>([])
+
   const tableOptions = Array.from({ length: 12 }, (_, i) => i + 1)
 
+  // question pool & tracking
   const [pool, setPool] = useState<Question[]>([])
   const wrongSet = useRef<Set<string>>(new Set())
   const allProblemsRef = useRef<
@@ -44,10 +55,12 @@ export default function Memorization({ userId }: MemorizationProps) {
   const [started, setStarted] = useState(false)
   const [finished, setFinished] = useState(false)
 
+  // capy bubbles
   const [bubbles, setBubbles] = useState<Bubble[]>([])
   const nextBubbleId = useRef(1)
   const inputRef = useRef<HTMLInputElement>(null)
 
+  // focus input on new question
   useEffect(() => {
     if (started && !finished && current && inputRef.current) {
       inputRef.current.focus()
@@ -61,13 +74,9 @@ export default function Memorization({ userId }: MemorizationProps) {
       const res = await fetch('/api/sessions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          mode: 'memorization',
-          problems: allProblemsRef.current,
-        }),
+        body: JSON.stringify({ mode: 'memorization', problems: allProblemsRef.current }),
       })
       if (!res.ok) console.error('❌ Failed to save session:', await res.text())
-      else console.log('✅ Session saved.')
     } catch (err) {
       console.error('❌ Error posting session:', err)
     }
@@ -81,7 +90,6 @@ export default function Memorization({ userId }: MemorizationProps) {
         setFinished(true)
         setCurrent(null)
       } else {
-        // retry wrong
         const retryQs = shuffle(
           Array.from(wrongSet.current).map((key) => {
             const [t, m] = key.split('×').map(Number)
@@ -113,6 +121,19 @@ export default function Memorization({ userId }: MemorizationProps) {
           )
         )
 
+    if (useFlashcards) {
+      setFlashcards(
+        combos.map((q) => ({
+          a: q.table,
+          b: q.multiplier,
+          front: `${q.table} × ${q.multiplier}`,
+          back: `${q.table} × ${q.multiplier} = ${q.table * q.multiplier}`,
+        }))
+      )
+      setShowFlashcards(true)
+      return
+    }
+
     setPool(combos)
     setTotalCount(combos.length)
     setCorrectCount(0)
@@ -137,7 +158,7 @@ export default function Memorization({ userId }: MemorizationProps) {
     )
   }
 
-  async function handleSubmit(evt?: React.MouseEvent) {
+  async function handleSubmit(evt?: React.MouseEvent | React.KeyboardEvent) {
     if (!current) return
     const guess = Number(answer)
     const correctAnswer = current.table * current.multiplier
@@ -146,25 +167,13 @@ export default function Memorization({ userId }: MemorizationProps) {
 
     try {
       await logAttempt({ userId, problem, correct: isCorrect, timeMs: 0, mode: 'memorization' })
-    } catch (err) {
-      console.error('Logging failed:', err)
-    }
+    } catch { }
 
-    allProblemsRef.current.push({
-      question: problem,
-      userAnswer: answer,
-      correct: isCorrect,
-      timeMs: 0,
-      round: 1,
-    })
+    allProblemsRef.current.push({ question: problem, userAnswer: answer, correct: isCorrect, timeMs: 0, round: 1 })
 
     if (isCorrect) {
       setCorrectCount((c) => c + 1)
-      if (evt) maybeSpawnBubbles(evt.clientX, evt.clientY)
-      else if (inputRef.current) {
-        const r = inputRef.current.getBoundingClientRect()
-        maybeSpawnBubbles(r.left + r.width / 2, r.top + r.height / 2)
-      }
+      if (evt && 'clientX' in evt && 'clientY' in evt) maybeSpawnBubbles(evt.clientX, evt.clientY)
     } else {
       wrongSet.current.add(problem)
     }
@@ -176,32 +185,41 @@ export default function Memorization({ userId }: MemorizationProps) {
     if (e.key === 'Enter') handleSubmit()
   }
 
+  // (moved import { useCallback } to top-level imports)
+
+  const handleFlashComplete = useCallback(() => {
+    setShowFlashcards(false)
+    setStarted(true)
+    setPool((prev) => {
+      const newPool = flashcards.map((fc) => ({
+        table: fc.a,
+        multiplier: fc.b,
+      }))
+      setTotalCount(newPool.length)
+      setCorrectCount(0)
+      nextQuestion(newPool)
+      return newPool
+    })
+  }, [flashcards])
+
+  if (showFlashcards) {
+    return (
+      <div className="pt-10">
+        <FlashcardCarousel cards={flashcards} onComplete={handleFlashComplete} />
+      </div>
+    )
+  }
+
   return (
-    <div className="w-full max-w-full relative min-h-screen flex flex-col items-center justify-start overflow-x-hidden px-4 sm:px-8 pt-8 bg-[var(--color-bg)] text-[var(--color-fg)]">
-      <CapybaraAnimation
-        progress={totalCount > 0 ? correctCount / totalCount : 0}
-        finished={finished}
-      />
+    <div className="w-full max-w-full relative min-h-screen flex flex-col items-center px-4 sm:px-8 pt-8 bg-[var(--color-bg)] text-[var(--color-fg)]">
+      <CapybaraAnimation progress={totalCount > 0 ? correctCount / totalCount : 0} finished={finished} />
 
       {bubbles.map((b) => (
         <div
           key={b.id}
-          style={{
-            position: 'absolute',
-            left: b.x - b.size / 2,
-            top: b.y - b.size / 2,
-            width: b.size,
-            height: b.size,
-            pointerEvents: 'none',
-          }}
+          style={{ position: 'absolute', left: b.x - b.size / 2, top: b.y - b.size / 2, width: b.size, height: b.size, pointerEvents: 'none' }}
         >
-          <Image
-            src="/images/capy-face.png"
-            alt="✨"
-            width={b.size}
-            height={b.size}
-            className="animate-capy-pop"
-          />
+          <Image src="/images/capy-face.png" alt="✨" width={b.size} height={b.size} className="animate-capy-pop" />
         </div>
       ))}
 
@@ -219,83 +237,52 @@ export default function Memorization({ userId }: MemorizationProps) {
               <span>Up to</span>
             </label>
           </div>
+
           {mode === 'range' ? (
             <div className="flex items-center space-x-2">
               <label>From:</label>
-              <select
-                value={minTable}
-                onChange={(e) => {
-                  const v = Number(e.target.value)
-                  setMinTable(v)
-                  if (v > maxTable) setMaxTable(v)
-                }}
-                className="p-2 border rounded"
-              >
-                {tableOptions.map((n) => (
-                  <option key={n} value={n}>
-                    {n}
-                  </option>
-                ))}
+              <select value={minTable} onChange={(e) => setMinTable(Number(e.target.value))} className="p-2 border rounded">
+                {tableOptions.map((n) => <option key={n} value={n}>{n}</option>)}
               </select>
               <label>To:</label>
-              <select
-                value={maxTable}
-                onChange={(e) => setMaxTable(Number(e.target.value))}
-                className="p-2 border rounded"
-              >
-                {tableOptions.filter((n) => n >= minTable).map((n) => (
-                  <option key={n} value={n}>
-                    {n}
-                  </option>
-                ))}
+              <select value={maxTable} onChange={(e) => setMaxTable(Number(e.target.value))} className="p-2 border rounded">
+                {tableOptions.filter((n) => n >= minTable).map((n) => <option key={n} value={n}>{n}</option>)}
               </select>
             </div>
           ) : (
             <div className="flex items-center space-x-2">
               <label>Up to:</label>
-              <select
-                value={uptoTable}
-                onChange={(e) => setUptoTable(Number(e.target.value))}
-                className="p-2 border rounded"
-              >
-                {tableOptions.map((n) => (
-                  <option key={n} value={n}>
-                    {n}
-                  </option>
-                ))}
+              <select value={uptoTable} onChange={(e) => setUptoTable(Number(e.target.value))} className="p-2 border rounded">
+                {tableOptions.map((n) => <option key={n} value={n}>{n}</option>)}
               </select>
             </div>
           )}
-          <button
-            onClick={start}
-            className="px-6 py-3 bg-[var(--color-accent)] text-white rounded-lg hover:bg-[var(--color-accent)]/80"
-          >
-            {mode === 'range'
-              ? `Begin (${minTable}–${maxTable})`
-              : `Begin (1–${uptoTable})`}
+
+          <label className="flex items-center space-x-2">
+            <input type="checkbox" checked={useFlashcards} onChange={(e) => setUseFlashcards(e.target.checked)} />
+            <span>Include Flashcards Before Quiz</span>
+          </label>
+
+          <button onClick={start} className="px-6 py-3 bg-[var(--color-accent)] text-white rounded-lg hover:bg-[var(--color-accent)]/80">
+            {mode === 'range' ? `Begin (${minTable}–${maxTable})` : `Begin (1–${uptoTable})`}
           </button>
         </div>
       )}
 
       {started && !finished && current && (
         <>
-          <p className="mb-4 text-2xl">
-            {current.table} × {current.multiplier} = ?
-          </p>
+          <p className="mb-4 text-2xl">{current.table} × {current.multiplier} = ?</p>
           <div className="flex items-center space-x-2 mb-6">
             <input
               ref={inputRef}
               type="text"
               inputMode="numeric"
-              className="w-24 p-2 border rounded text-center appearance-none"
+              className="w-24 p-2 border rounded text-center"
               value={answer}
               onChange={(e) => setAnswer(e.target.value)}
               onKeyDown={handleKeyDown}
             />
-            <button
-              onClick={handleSubmit}
-              className="px-6 py-2 bg-[var(--color-accent)] text-white rounded-lg hover:bg-[var(--color-accent)]/80"
-            >
+            <button onClick={handleSubmit} className="px-6 py-2 bg-[var(--color-accent)] text-white rounded-lg hover:bg-[var(--color-accent)]/80">
               Submit
             </button>
           </div>
@@ -307,27 +294,8 @@ export default function Memorization({ userId }: MemorizationProps) {
           <p className="text-2xl">All done! 🎉</p>
           <p>You mastered every single problem in this range.</p>
           <div className="flex justify-center space-x-4">
-            <button
-              onClick={start}
-              className="px-6 py-3 bg-[var(--color-accent)] text-white rounded-lg hover:bg-[var(--color-accent)]/80"
-            >
-              Try Again
-            </button>
-            <button
-              onClick={() => {
-                wrongSet.current.clear()
-                allProblemsRef.current = []
-                setStarted(false)
-                setFinished(false)
-                setPool([])
-                setTotalCount(0)
-                setCorrectCount(0)
-                setCurrent(null)
-              }}
-              className="px-6 py-3 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400/80"
-            >
-              New Range
-            </button>
+            <button onClick={start} className="px-6 py-3 bg-[var(--color-accent)] text-white rounded-lg hover:bg-[var(--color-accent)]/80">Try Again</button>
+            <button onClick={() => setStarted(false)} className="px-6 py-3 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400/80">New Range</button>
           </div>
         </div>
       )}
