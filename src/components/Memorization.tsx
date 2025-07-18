@@ -1,7 +1,7 @@
 // src/components/Memorization.tsx
 'use client'
 
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import Image from 'next/image'
 import { logAttempt } from '@/lib/practice'
 import { allCombos } from '@/utils/generateQuestions'
@@ -15,7 +15,6 @@ interface MemorizationProps {
 }
 
 type Bubble = { id: number; x: number; y: number; size: number }
-
 type FlashcardItem = { a: number; b: number; front: string; back: string }
 
 function shuffle<T>(arr: T[]): T[] {
@@ -122,14 +121,13 @@ export default function Memorization({ userId }: MemorizationProps) {
         )
 
     if (useFlashcards) {
-      setFlashcards(
-        combos.map((q) => ({
-          a: q.table,
-          b: q.multiplier,
-          front: `${q.table} × ${q.multiplier}`,
-          back: `${q.table} × ${q.multiplier} = ${q.table * q.multiplier}`,
-        }))
-      )
+      const cards = combos.map((q) => ({
+        a: q.table,
+        b: q.multiplier,
+        front: `${q.table} × ${q.multiplier}`,
+        back: `${q.table} × ${q.multiplier} = ${q.table * q.multiplier}`,
+      }))
+      setFlashcards(cards)
       setShowFlashcards(true)
       return
     }
@@ -167,7 +165,9 @@ export default function Memorization({ userId }: MemorizationProps) {
 
     try {
       await logAttempt({ userId, problem, correct: isCorrect, timeMs: 0, mode: 'memorization' })
-    } catch { }
+    } catch {
+      // ignore logging errors
+    }
 
     allProblemsRef.current.push({ question: problem, userAnswer: answer, correct: isCorrect, timeMs: 0, round: 1 })
 
@@ -185,22 +185,15 @@ export default function Memorization({ userId }: MemorizationProps) {
     if (e.key === 'Enter') handleSubmit()
   }
 
-  // (moved import { useCallback } to top-level imports)
-
-  const handleFlashComplete = useCallback(() => {
+  function handleFlashComplete() {
     setShowFlashcards(false)
     setStarted(true)
-    setPool((prev) => {
-      const newPool = flashcards.map((fc) => ({
-        table: fc.a,
-        multiplier: fc.b,
-      }))
-      setTotalCount(newPool.length)
-      setCorrectCount(0)
-      nextQuestion(newPool)
-      return newPool
-    })
-  }, [flashcards])
+    const newPool = flashcards.map((fc) => ({ table: fc.a, multiplier: fc.b }))
+    setPool(newPool)
+    setTotalCount(newPool.length)
+    setCorrectCount(0)
+    nextQuestion(newPool)
+  }
 
   if (showFlashcards) {
     return (
